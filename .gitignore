@@ -40,6 +40,8 @@ artifacts/
 # Publish
 **/publish/
 PublishOutput/
+*.pubxml
+*.pubxml.user
 
 # WPF designer
 **/*.g.cs
