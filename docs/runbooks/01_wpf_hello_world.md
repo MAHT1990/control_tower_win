@@ -30,10 +30,20 @@ Visual Studio 2026에서 WPF 프로젝트를 처음부터 손으로 만들고,
 | 프로젝트 이름 | `HelloWorldWpf` |
 | 위치 | `C:\Users\kitor\Projects\control_tower_win\src` |
 | 솔루션 이름 | `HelloWorldWpf` |
-| .NET 버전 | .NET 8.0 (또는 설치된 최신) |
+| .NET 버전 | .NET 10.0 (또는 설치된 최신) |
 
-- **솔루션 및 프로젝트를 같은 디렉터리에 배치** 체크 해제 (기본값 유지)
+- **솔루션 및 프로젝트를 같은 디렉터리에 배치** → ⚠️ **반드시 체크** ✅
 - **만들기** 클릭
+
+> **왜 체크해야 하나?**
+> 미체크 시 VS가 솔루션과 프로젝트를 중첩 구조로 생성한다.
+> ```
+> src/HelloWorldWpf/          ← 솔루션(.slnx) 위치
+>  └─ HelloWorldWpf/          ← 프로젝트 위치 (한 단계 더 들어감)
+>      └─ HelloWorldWpf.csproj
+> ```
+> 이 경우 솔루션이 프로젝트를 참조하지 못해 **빌드 메뉴 자체가 사라지고**
+> **디버그 > 디버깅 시작도 비활성화**된다.
 
 ---
 
@@ -45,10 +55,13 @@ Visual Studio 2026에서 WPF 프로젝트를 처음부터 손으로 만들고,
 HelloWorldWpf/
  ├─ App.xaml
  ├─ App.xaml.cs
+ ├─ AssemblyInfo.cs       ← .NET 10에서 추가됨, 무시해도 됨
  ├─ MainWindow.xaml
  ├─ MainWindow.xaml.cs
  └─ HelloWorldWpf.csproj
 ```
+
+> **솔루션 파일**: VS 2026은 기존 `.sln` 대신 `.slnx`(XML 기반) 형식을 생성한다. 정상이다.
 
 각 파일 역할:
 
@@ -115,6 +128,8 @@ HelloWorldWpf/
 | 증상 | 원인 | 해결 |
 |------|------|------|
 | WPF 템플릿이 목록에 없음 | 워크로드 미설치 | VS Installer → .NET 데스크톱 개발 추가 |
+| **빌드 메뉴가 없고 디버그 비활성화** | "솔루션 및 프로젝트를 같은 디렉터리에 배치" 미체크로 솔루션이 프로젝트를 참조 못 함 | 프로젝트 삭제 후 Step 2 옵션 체크하고 재생성 |
 | 빌드 오류: `namespace not found` | 프로젝트 이름과 `x:Class` 불일치 | `x:Class="HelloWorldWpf.MainWindow"` 확인 |
 | 창은 뜨는데 텍스트 없음 | `Text` 속성 누락 | `TextBlock`에 `Text="Hello World"` 확인 |
 | XAML 디자이너 안 보임 | .NET 데스크톱 개발 워크로드 미포함 | VS Installer → 수정 → 워크로드 추가 |
+| `.sln` 파일이 안 보임 | VS 2026은 `.slnx` 형식 사용 | 정상, `.slnx`가 솔루션 파일임 |
