@@ -2,7 +2,7 @@
 using System.Data;
 using System.Windows;
 
-namespace HelloWorldWpf
+namespace ControlTowerWin
 {
     /// <summary>
     /// Interaction logic for App.xaml

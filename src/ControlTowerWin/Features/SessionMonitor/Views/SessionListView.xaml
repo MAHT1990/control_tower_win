@@ -1,0 +1,8 @@
+<UserControl x:Class="ControlTowerWin.Features.SessionMonitor.Views.SessionListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <TextBlock Text="Active PowerShell Sessions" FontWeight="Bold" Margin="0,0,0,4"/>
+        <ListBox ItemsSource="{Binding Sessions}" Height="120" DisplayMemberPath="DisplayName"/>
+    </StackPanel>
+</UserControl>
