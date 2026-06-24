@@ -8,7 +8,7 @@ public class ProcessTracker
 {
     private static readonly string[] Names = ["powershell", "pwsh"];
 
-    // 강한 참조: GC가 Exited 막는 것을 방지
+    /* 강한 참조: GC가 Exited 막는 것을 방지 */
     private readonly Dictionary<int, Process> _tracked = new();
     private readonly System.Timers.Timer _timer = new(1000);
     private readonly object _lock = new();
@@ -38,7 +38,10 @@ public class ProcessTracker
                     p.EnableRaisingEvents = true;
                     p.Exited += (s, _) => Remove(((Process)s!).Id);
                 }
-                catch { /* 권한 부족 프로세스는 폴링으로 정리 */}
+                catch
+                {
+                    /* 권한 부족 프로세스는 폴링으로 정리 */
+                }
             }
 
             foreach (var pid in _tracked.Keys.Except(currentPids).ToList())
