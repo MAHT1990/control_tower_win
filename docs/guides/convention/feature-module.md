@@ -27,11 +27,12 @@ Features/
 │   ├── NewTerminalViewModel.cs
 │   └── TerminalLauncher.cs
 │
-└── SendCommand/                 # 기능 3: 커맨드 전송 (Runbook 05, 예정)
+└── SendCommand/                 # 기능 3: 커맨드 전송 (Runbook 06)
     ├── Models/      CommandRequest.cs
+    ├── Interfaces/  IStdinInjector.cs        # 계약(항상 분리)
     ├── Views/       SendCommandView.xaml(.cs)
     ├── ViewModels/  SendCommandViewModel.cs
-    └── Services/    StdinInjector.cs
+    └── Services/    StdinInjector.cs         # 구현
 ```
 
 ### 내부 레이어와 네임스페이스
@@ -39,9 +40,10 @@ Features/
 | 레이어 | 네임스페이스 | 상세 |
 |--------|------------|------|
 | Models | `ControlTowerWin.Features.SessionMonitor.Models` | [models.md](./models.md) |
+| Interfaces | `ControlTowerWin.Features.SessionMonitor.Interfaces` | [interfaces.md](./interfaces.md) — 계약 전용, 항상 분리 |
 | Views | `ControlTowerWin.Features.SessionMonitor.Views` | [views.md](./views.md) |
 | ViewModels | `ControlTowerWin.Features.SessionMonitor.ViewModels` | [viewmodels.md](./viewmodels.md) |
-| Services | `ControlTowerWin.Features.SessionMonitor.Services` | [services.md](./services.md) |
+| Services | `ControlTowerWin.Features.SessionMonitor.Services` | [services.md](./services.md) — 구현체 |
 
 ---
 
@@ -95,6 +97,8 @@ SendCommand/
 
 1. **Feature 간 직접 참조 금지**: `Features/A`가 `Features/B`의 클래스를 직접 참조하지 않는다.
    공유가 필요하면 `Shared/`로 올리거나 Shell이 조합한다. 직접 참조는 모듈 격리를 깬다.
+1. **인터페이스는 점진 승격 예외**: 다른 레이어는 "파일 1개면 평면, 2개↑면 폴더 승격"이지만,
+   **인터페이스는 1개여도 항상 `Interfaces/`에 둔다**([interfaces.md](./interfaces.md)). 계약과 구현을 명확히 가르기 위함.
 2. **승격 시 네임스페이스 동시 갱신**: 파일을 레이어 폴더로 옮기면 `namespace`와(View라면) `x:Class`를
    폴더 경로에 맞춰 갱신해야 한다. 누락 시 빌드/XAML 오류.
 3. **기능 단위 = 런북 단위**: 런북 1개가 기능 모듈 1개에 대응하도록 유지하면 문서-코드 추적이 쉽다.
