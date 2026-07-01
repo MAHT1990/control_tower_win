@@ -331,7 +331,8 @@
 - 핵심 구성요소: 셀 그리드(전경/배경색·커서) / 스크롤백 뷰포트+스크롤바 / alt-screen 모드 전환(TUI) / 입력 포커스 링 / 리사이즈 그립(PTY 재조정).
 - 표시 데이터: {screenBuffer cells}, {cursor pos}, {scrollback offset}, {alt-screen active?}, {cols×rows}.
 - 상호작용: 포커스 시 키 입력→VT 인코딩→입력 파이프 write(FN-TRM-12, 특수키 Ctrl+C/방향키/Enter) / 휠·스크롤바 스크롤백 조회(신규 출력 시 자동 하단 복귀) / 뷰 리사이즈→ResizePseudoConsole 재래핑(디바운스) / 드래그 선택→SC-09.
-- 상태: 로딩=세션 starting 시 "connecting pty…" / 빈=출력 없음(프롬프트 대기) / 에러=파이프 오류→세션 error 오버레이+"session error, see diagnostics"(SC-06 링크). 렌더② 미완 시 claude TUI 깨짐 경고 배너(주입/제어는 가능, C10).
+- 상태: 로딩=세션 starting 시 "connecting pty…" / 빈=출력 없음(프롬프트 대기) / 에러=파이프 오류→세션 error 표시+"session error, see diagnostics"(SC-06 링크).
+- **★ v2 정합(10 v2 RISK-002 airspace)**: SC-08은 EasyWindowsTerminalControl(native HwndHost)이라 **터미널 위 WPF 오버레이 불가**. 세션 error 표시·경고 배너·출력 로그는 **터미널 존 밖 별도 패널**(하단/우측), 위험 게이트(SC-13)는 **별도 모달**로 배치. 선택 컨텍스트 메뉴(SC-09)만 터미널 위 허용. claude TUI는 공식 WT 렌더러가 06 GO로 정상 렌더 → "깨짐 경고 배너"는 사실상 불필요.
 - 진입: 탭 선택(SC-07) / 이탈: 선택→SC-09, 명령→SC-12, 크래시→SC-11 배지/SC-06.
 ```
 +-- TERMINAL VIEW  SC-08  (as: tower2 [>]) --------+^| <- scrollbar

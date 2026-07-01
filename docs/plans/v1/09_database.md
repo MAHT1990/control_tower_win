@@ -313,6 +313,8 @@ erDiagram
 
 ### 4-1. TRM — 터미널 런타임 [R]
 
+> **★ v2 정합(10 v2)**: 엔진 반전으로 ENT-001(screen_buffer)·ENT-002(scrollback_buffer)는 **EasyWindowsTerminalControl 내부 상태**로 이전 — 앱이 소유·모델링하는 런타임 엔티티가 아니라 컨트롤이 관리(우리 코드는 셀/스크롤백 버퍼를 직접 보유하지 않음). 아래 정의는 "엔진이 내부적으로 유지하는 상태"의 개념 스케치로 재해석. ENT-003(terminal_tab)·ENT-004(session)는 앱 소유 유지.
+
 #### [ENT-001] screen_buffer          (도메인: TRM · [R] 런타임)
 - 설명: VT 파서가 산출한 현재 화면 버퍼(셀 그리드·커서·alt-screen·선택). 비영속(프로세스 종료 시 소멸).
 - 소급 FR: FR-003·004·005·010 / 구현 FN: FN-TRM-04·05·07·13 / 소비 SC: SC-08·09

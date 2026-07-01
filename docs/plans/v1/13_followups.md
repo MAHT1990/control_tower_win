@@ -1,6 +1,6 @@
 # 13. 후속 숙제·운영 사전확인 (Follow-ups & Open Issues)
 
-> 담당: orchestrator(합성) · 깊이: deep · 후속 숙제 8건(해소 4 / 잠정 2 / 미해결 2) + 운영 사전확인 5건
+> 담당: orchestrator(합성) · 깊이: deep · 후속 숙제 8건(해소/소멸 4 / 잠정 1 / 미해결 3 · **v2: ②③⑦ 엔진 반전으로 해소·소멸**) + 운영 사전확인 5건
 > 본 문서는 04 §5가 남긴 후속 숙제 ①~⑧의 **하위 문서 해소 현황**과, 구현 착수 전 확정이 필요한 운영 사전확인 항목을 취합한다.
 
 ---
@@ -16,15 +16,15 @@
 | # | 후속 숙제 | 상태 | 해소/잠정 결정 | 관련 FR/NFR | 최종 확정 시점 |
 |---|---|:--:|---|---|---|
 | ① | 세션 프로파일 영속화 형태 | ✅ **해소** | **JSON-first, SQLite-ready** — 프로파일당 1파일 JSON(원자적 temp→rename), 토큰이력/진단만 축적 시 SQLite 승격 (09 §8-4) | FR-020·023·043·NFR-011 | L1 반영 |
-| ② | VT 파서 라이브러리 선정 | ✅ **해소(잠정)** | **VtNetCore(MIT)** — `ITerminalScreenModel` 어댑터 뒤, 소스 vendoring/fork. 실패 시 XtermSharp engine 교체(경계 검증) (10 TS-04) | FR-003·NFR-018 | **Gate0 PoC** 최종 확정 |
-| ③ | 렌더러 성능 목표 | 🟡 **PoC 대기** | 잠정 ≥30fps·리페인트 ≤50ms·10만 라인 무멈춤 → **Phase 0 압축 PoC 실측으로 확정** (10 RISK-002) | FR-004·005·007·NFR-001 | **Gate0 PoC** |
+| ② | VT 파서 라이브러리 선정 | ✅ **소멸** | 엔진(**EasyWindowsTerminalControl**) 내장 → 자체 파서 선정 자체가 불필요(10 v2·runbook 06 GO). 기존 VtNetCore 후보는 폐기 | FR-003·NFR-018 | 해소 |
+| ③ | 렌더러 성능 목표 | ✅ **해소** | **공식 Windows Terminal GPU 렌더러** · 06 GO(pwsh 대량출력·claude TUI 동작). 자체 30fps 목표 불필요(10 v2) | FR-004·005·007·NFR-001 | 해소 |
 | ④ | 앱 채널 = IPC channel 1:1 매핑 | 🔴 **미해결(요구확정)** | 잠정 1:1 + 그룹발신은 to 컨벤션(`a,b,c`/`all`). `ENT-009.app_channel_name` 필드화, 미확정 구간 "가정 매핑 + 경고 배너" | FR-024·026·029·023 | **L2(Gate3) 진입 전** |
 | ⑤ | 프롬프트 편집 v1 범위 | 🟡 **잠정 확정** | 트리 브라우저 + 읽기/쓰기(Must) · 생성/삭제/이름변경(Should) · **스키마 검증은 후속**. 경로 탈출 차단(NFR-008) | FR-033~036·042·NFR-008 | **L3(Gate4) 진입 전** |
 | ⑥ | web_monitor 흡수 vs 병존 | 🔴 **미해결** | 잠정: 앱 내 경량 채널 대화 뷰(SC-17) 제공하되 기존 `tools/web_monitor` 병존(대체 안 함) | FR-028·024 | **L2** |
-| ⑦ | 렌더②(alt-screen/TUI) 마일스톤 시점 | ✅ **해소** | **M-R2 병렬 트랙** — L1(MVP) 이후 착수, L2와 병렬(입력경로가 렌더①서 확보돼 볼모 아님) (12 §3-6) | FR-005·NFR-013 | 확정 |
+| ⑦ | 렌더②(alt-screen/TUI) 마일스톤 시점 | ✅ **소멸** | alt-screen이 **엔진 기본 제공**(06 GO) → 별도 렌더② 마일스톤 불필요(10 v2). M-R2 트랙 폐지 | FR-005·NFR-013 | 해소 |
 | ⑧ | 위험 명령 가드 정책 범위 | 🔴 **미해결(요구확정)** | 잠정: 최소 가드(파괴적 패턴 확인) Should·기본 on·broadcast/`all` 주입 우선 적용. `ENT-015.risk_patterns` 유연 컬럼 | FR-037·NFR-007·014 | **L2(Gate3) 진입 전** |
 
-**요약**: ✅해소 3(①②⑦) · 🟡잠정/PoC대기 2(③⑤) · 🔴미해결 3(④⑥⑧). 미해결 3건은 모두 **L2/L3 진입 전 확정**이 필요하며 MVP(L0+L1) 착수는 막지 않는다.
+**요약(v2)**: ✅해소·소멸 4(①②③⑦) · 🟡잠정 1(⑤) · 🔴미해결 3(④⑥⑧). 엔진 반전(10 v2)으로 ②③⑦(파서 선정·렌더 성능·렌더② 마일스톤)이 **엔진 내장으로 소멸/해소**됨. 미해결 3건(④⑥⑧)은 모두 **L2/L3 진입 전 확정**이 필요하며 MVP(L0+L1) 착수는 막지 않는다.
 
 ---
 
@@ -66,12 +66,12 @@ MVP 이후 L2/L3 착수 전에 사용자 확정이 필요한 항목:
 
 | RISK | 우선 | 완화 요지 | 검증 |
 |---|:--:|---|---|
-| RISK-001 ConPTY 자체제작 | ★최상 | MS GUIConsole 얇은 래퍼·파이프별 전용 스레드·drain 후 close | **Gate0 PoC** (100x spawn/kill) |
-| RISK-002 렌더 성능 | ★최상 | GlyphRun+dirty-diff·60Hz coalesce·backpressure | **Gate0 PoC** (10만 라인) |
-| RISK-003 파서 적합성 | ★최상 | ITerminalScreenModel 경계·VtNetCore vendoring·XtermSharp fallback | **Gate0 PoC** (claude TUI) |
-| RISK-004 I/O 데드락 | 상 | 파이프별 스레드+bounded Channel+Dispatcher | Gate0 PoC (8세션) |
+| RISK-001 **native 배포 함정** | ★최상 | csproj RID=win-x64·UseRidGraph·GeneratePathProperty·`<None>` conpty.dll/OpenConsole.exe 복사(검정화면 방지) | 06 GO + CI native 존재 게이트 |
+| RISK-002 airspace 오버레이 제약 | 상 | 경고배너·로그·위험게이트는 터미널 존 밖 별도 패널/모달 | 컨텍스트 메뉴 OK 확인 |
+| RISK-003 엔진 의존(beta·라이선스) | 중 | CI 버전 핀·ITerminalSession 경계·MIT 확인·폴백 격리 | 핀 재현·라이선스 게이트 |
+| RISK-004 주입/캡처 스레딩(06b) | 중 | 캡처 델리게이트 Dispatcher 마샬링·WriteToTerm 주입-타이핑 공존 | 06b PoC |
 
-→ **Phase 0 압축 PoC가 ★최상 4건을 선제 차단**. 통과 시 후속 숙제 ②③ 동시 해소.
+→ **runbook 06이 이미 렌더·파서·claude TUI를 GO 검증**(후속숙제 ②③⑦ 해소). 잔여 임계경로는 **native 배포(RISK-001)** — 06b 주입/캡처·07 좀비 정리·ClickOnce native 동봉 검증(라이선스는 MIT 확인, largely 해소).
 
 ---
 

@@ -208,9 +208,9 @@
 
 | # | 영역 | 결정 | 근거(경쟁 벤치마크 + 브리프) | 관련 |
 |---|---|---|---|---|
-| B1 | ConPTY 세션 spawn·소유·주입 | **BUILD**(자체) | 임베더블 컨트롤(CS-013)은 외부 attach 불가·주입/lifecycle API 미노출·WinUI3 마찰. 앱-소유 강제·임의 주입이 정체성 → 통제력 우선. 결정 #4/#7 | FR-001·002·014·039 |
-| B2 | VT 시퀀스 파싱 | **BUY/Integrate**(.NET 라이브러리) | 자체 파싱은 버그 리스크(결정 #6). CS-011 엔진 or CS-012 파서 채택 → 출시 속도↑·리스크↓. 단 후보 실측·라이선스 미확정(숙제②) | FR-003·NFR-018 |
-| B3 | WPF 셀 렌더러(①색·커서·스크롤백 / ②alt-screen) | **BUILD**(자체 WPF) | CS-011은 WPF 렌더 없음, CS-013은 WPF 임베드 마찰(투명·Win10·접근성). Windows 네이티브 통제력·성능(NFR-001) 위해 자체. 결정 #5/#6 | FR-004·005·007 |
+| B1 | 임베드 터미널 엔진(spawn·렌더·주입) | **INTEGRATE/BUY** (EasyWindowsTerminalControl, MIT) | ★**반전(10 v2)**: runbook 06 GO — **공식 Windows Terminal 렌더러**(Microsoft.Terminal.Control/Wpf)를 WPF에 임베드, 앱-소유·주입은 TermPTY API로 통제. WinUI3 마찰은 그 백엔드만 WPF용으로 뽑아와 회피. 결정 #4/#7 유지 | FR-001·002·014·039 |
+| B2 | VT 시퀀스 파싱 | **엔진 내장**(별도 채택 불필요) | ★반전: 공식 WT 렌더러가 파싱·렌더 일체 제공 → 자체 파서(VtNetCore) 선정 **소멸**(후속숙제② 해소, 10 v2) | FR-003·NFR-018 |
+| B3 | 셀 렌더러 | **엔진 내장**(공식 WT GPU 렌더러) | ★반전: self-build(GlyphRun)는 NO-GO 폴백(MS GUIConsole.ConPTY)으로 강등. 렌더 성능 리스크 대폭 완화(후속숙제③ 해소, 06 GO) | FR-004·005·007 |
 | B4 | IPC 채널·relay·전송 | **REUSE**(skill_ipc_control) | CS군 어디도 세션 간 IPC 없음 = 재사용 자산이 곧 차별. 재구현 금지(NFR-017), GUI 프론트엔드만. 결정 #3 | FR-024·025·027·029 |
 | B5 | 토큰 집계(jsonl) | **BUILD-light**(자체 증분 파서) | ccusage(CS-010)로 jsonl 접근 검증됨 — 로직 참고하되 CLI 종속 회피, 관제탑 내장·증분(NFR-005). 결정 #11 | FR-030·031·032 |
 | B6 | 세션 오케스트레이션 UX(프로파일·다중세션·IPC 협업 뷰) | **BUILD**(차별화 핵심) | Squad/Conductor보다 깊은 프로파일 애그리거트 + 유일한 IPC 협업 뷰. 통제력·차별화 우선 | FR-011·019·022·026·028 |

@@ -3,6 +3,8 @@
 > 담당: plan_roadmap_planner · 깊이: deep · 5 단계(P0·L0·L1·L2·L3) / 4 레이어 + 횡단 X · FR 전수 매핑 43/43
 > 본 문서는 FR 43을 레이어/단계로 전수 배치하고, RISK-001~004를 선행 Phase 0(압축 PoC)로 차단한 뒤, Gate 기반 상대 일정으로 실행 순서를 제시한다.
 
+> ★ **v2 정합 노트 (runbook 06/06b/07 반영)**: 터미널 엔진이 self-build → **EasyWindowsTerminalControl(공식 WT 렌더러 임베드, 10 v2)** 로 반전됨. 이에 따라 — (a) **Phase 0**는 "self-build 리스크 차단"이 아니라 **"엔진 통합·native 배포 검증"** 이며 렌더·파서·claude TUI는 **runbook 06으로 이미 GO**. (b) **L0**는 파서/렌더러 자체제작이 아니라 **컨트롤 호스팅 + `ITerminalSession` 경계 + native 자산 복사**(conpty.dll/OpenConsole.exe). (c) RISK는 **001=native 배포·002=airspace·003=엔진 의존**으로 재정의(10 v2). (d) **후속숙제 ②③⑦ 소멸**(파서 선정·렌더 성능·렌더② 마일스톤 → 엔진 내장). 아래 §2 P0·§3-1 L0의 self-build 표기는 이 노트로 대체 해석한다.
+
 ---
 
 ## 0. 개요
@@ -183,7 +185,7 @@
 - **배치 FR(10)**: FR-001·002·003·004·006·009(Must 핵심) · FR-007·010(Should, 후반) · FR-005(렌더②→**M-R2 병렬**) · FR-008(pane→**M-PANE 후속**).
 - **핵심 FN**: FN-TRM-01~13.
 - **선행 ENT**: ENT-004(session 런타임)·ENT-001(screen_buffer)·ENT-002(scrollback)·ENT-003(terminal_tab) — 전부 [R] 런타임(영속 0).
-- **산출물**: ① ConPTY P/Invoke 얇은 래퍼(spawn/resize/close) · ② `ITerminalScreenModel` 파서-렌더 경계 인터페이스(NFR-018) · ③ VtNetCore 어댑터(vendored/fork) · ④ GlyphRun 셀 렌더러(dirty-diff) · ⑤ 탭 컨테이너(단일 pane→탭, C8) · ⑥ 키보드 입력→VT 인코딩 · ⑦ 리사이즈 재래핑·스크롤백 뷰포트 · ⑧ 선택·클립보드 복사.
+- **산출물(v2 정합)**: ① **EasyWindowsTerminalControl 호스팅**(EmbeddedTerminal Feature, `StartupCommandLine=pwsh`) · ② `ITerminalSession` 엔진 경계 인터페이스(주입/캡처/수명·폴백 교체점 NFR-018) · ③ **native 자산 배포**(csproj RID=win-x64·UseRidGraph·GeneratePathProperty·`<None>` conpty.dll/OpenConsole.exe 복사 — "검정 화면" 방지, RISK-001) · ④ 탭 컨테이너(단일 pane→탭, C8) · ⑤ 키보드 입력·⑥ 리사이즈·스크롤백·⑦ 선택·복사(모두 **컨트롤 기본 제공**). *파서·셀 렌더러 자체제작 없음 — 공식 WT 렌더러 내장(06 GO).*
 - **마이그레이션 MIG-1**: `Features/TerminalLauncher`(`wt -w -1 nt` 새창) → **ConPTY spawn으로 대체**(브리프 §6). 외부 wt 열기는 보조 기능 잔류 검토(본 로드맵 범위 밖 옵션).
 - **완료 Gate1(출구)**: 렌더① 실시간 갱신 · 탭 전환 시 화면/포커스 활성 · 키보드 입력 포커스(특수키 VT 정확) · 리사이즈 재래핑 · 스크롤백 조회 동작 · 파서-렌더 경계 1곳 확립. `[11]` 터미널 단위·통합 테스트 통과. (렌더②·pane은 Gate1 제외 — 병렬/후속.)
 - **대응 RISK**: RISK-002(렌더)·003(파서)·004(스레딩) — P0에서 선제, L0에서 실사용 정착.

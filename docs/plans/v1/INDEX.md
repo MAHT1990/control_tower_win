@@ -54,7 +54,7 @@
 - **식별자 총계**: FR 43 · NFR 22 · FN 53 · UT 5 · P 1 · BS 22 · JM 5 · SC 22 · ENT 18 · RISK 10 · 공통 카테고리 8(TRM·SES·PRF·IPC·OBS·AST·SEC·SYS)
 - **MoSCoW(FR)**: Must 30 · Should 11 · Could 2
 - **레이어 로드맵**: P0(압축 PoC) → L0(터미널) → L1(세션·프로파일=MVP) → L2(IPC) → L3(관측·자산) + 횡단(SEC·SYS)
-- **핵심 결정**: ConPTY 자체 P/Invoke(BUILD) · VtNetCore 파서(INTEGRATE) · GlyphRun 렌더러(BUILD) · JSON-first 영속 · IPC 재사용(REUSE)
+- **핵심 결정(v2)**: **EasyWindowsTerminalControl(공식 WT 렌더러 임베드, INTEGRATE/BUY, MIT)** — runbook 06 GO(10 v2, 엔진 반전) · self-build(ConPTY+VtNetCore+GlyphRun)는 NO-GO 폴백 · JSON-first 영속 · IPC 재사용(REUSE)
 - **무결성**: FR 전수 커버리지 FN/SC/ENT/로드맵 **43/43** · 고아 참조 0 · 중복 ID 0
 
 ---
