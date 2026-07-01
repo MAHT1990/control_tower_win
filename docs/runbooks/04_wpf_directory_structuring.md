@@ -143,12 +143,14 @@ namespace ControlTowerWin.Features.SessionMonitor.Services;
 public class ProcessTracker
 {
     private static readonly string[] Names = ["powershell", "pwsh"];
-    private readonly Dictionary<int, Process> _tracked = new();   // 강한 참조: GC가 Exited 막는 것 방지
+    /* 강한 참조: GC가 Exited 막는 것 방지 */
+    private readonly Dictionary<int, Process> _tracked = new();
     private readonly System.Timers.Timer _timer = new(1000);
     private readonly object _lock = new();
 
     public event Action<TerminalInfo>? SessionAdded;
-    public event Action<int>? SessionRemoved;   // pid
+    /* pid */
+    public event Action<int>? SessionRemoved;
 
     public ProcessTracker() => _timer.Elapsed += (_, _) => Poll();
 
@@ -172,7 +174,10 @@ public class ProcessTracker
                     p.EnableRaisingEvents = true;
                     p.Exited += (s, _) => Remove(((Process)s!).Id);
                 }
-                catch { /* 권한 부족 프로세스는 폴링으로 정리 */ }
+                catch
+                {
+                    /* 권한 부족 프로세스는 폴링으로 정리 */
+                }
             }
 
             foreach (var pid in _tracked.Keys.Except(currentPids).ToList())
@@ -268,7 +273,8 @@ public class TerminalLauncher
         {
             FileName = "wt",
             Arguments = "-w -1 nt",
-            UseShellExecute = true   // wt는 Store 앱 별칭 → 반드시 true
+            /* wt는 Store 앱 별칭 → 반드시 true */
+            UseShellExecute = true
         });
 }
 ```
@@ -285,9 +291,9 @@ public class NewTerminalViewModel : ViewModelBase
 {
     public ICommand OpenCommand { get; }
 
-    // ⚠️ 클래스명 TerminalLauncher가 폴더 네임스페이스(...Features.TerminalLauncher)와 같다.
-    //    이 ViewModel은 그 네임스페이스 하위에 있어, 'TerminalLauncher'만 쓰면 컴파일러가
-    //    타입이 아닌 '네임스페이스'로 해석한다(CS0118). 'Services.'로 한정해 타입을 지목한다.
+    /* ⚠️ 클래스명 TerminalLauncher가 폴더 네임스페이스(...Features.TerminalLauncher)와 같다.
+       이 ViewModel은 그 네임스페이스 하위에 있어, 'TerminalLauncher'만 쓰면 컴파일러가
+       타입이 아닌 '네임스페이스'로 해석한다(CS0118). 'Services.'로 한정해 타입을 지목한다. */
     public NewTerminalViewModel(Services.TerminalLauncher launcher) =>
         OpenCommand = new RelayCommand(_ => launcher.OpenNewWindow());
 }

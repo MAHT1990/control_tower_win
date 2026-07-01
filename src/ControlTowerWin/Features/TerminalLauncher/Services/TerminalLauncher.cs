@@ -9,6 +9,7 @@ public class TerminalLauncher
         {
             FileName = "wt",
             Arguments = "-w -1 nt",
-            UseShellExecute = true   // wt는 Store 앱 별칭 → 반드시 true
+            /* wt는 Store 앱 별칭 → 반드시 true */
+            UseShellExecute = true
         });
 }
