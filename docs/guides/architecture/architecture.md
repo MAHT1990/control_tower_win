@@ -50,14 +50,16 @@ src/ControlTowerWin/
 │   │   ├── ViewModels/   NewTerminalViewModel.cs
 │   │   └── Services/     TerminalLauncher.cs
 │   │
-│   └── SendCommand/                 # [기능] 세션에 커맨드 전송 (Runbook 05, 예정)
+│   └── SendCommand/                 # [기능] 세션에 커맨드 전송 (Runbook 06)
 │       ├── Models/       CommandRequest.cs
+│       ├── Interfaces/   IStdinInjector.cs          # 계약(선언만)
 │       ├── Views/        SendCommandView.xaml(.cs)
 │       ├── ViewModels/   SendCommandViewModel.cs
-│       └── Services/     IStdinInjector.cs / StdinInjector.cs
+│       └── Services/     StdinInjector.cs           # 구현(IStdinInjector)
 │
 └── Shared/                          # 횡단 공유 자산 = SharedModule
     ├── Core/         ViewModelBase.cs, RelayCommand.cs
+    │                 Interfaces/   (공유 계약 — 예: IDialogService.cs)
     ├── Controls/     (재사용 UserControl)
     ├── Converters/   (IValueConverter 모음)
     └── Styles/       (공유 ResourceDictionary)
@@ -125,9 +127,10 @@ src/ControlTowerWin/
 | Shell | [shell.md](../convention/shell.md) | 앱 셸 윈도우, 기능 조합, 진입점 |
 | Feature 모듈 | [feature-module.md](../convention/feature-module.md) | 기능 폴더 경계·내부 레이어·점진 승격 규칙 |
 | Models | [models.md](../convention/models.md) | 데이터 클래스, 표시용 파생 속성 |
+| Interfaces | [interfaces.md](../convention/interfaces.md) | 계약(interface) 전용 레이어, 항상 분리(개수 무관) |
 | Views | [views.md](../convention/views.md) | XAML, x:Class·namespace 규약, DataTemplate |
 | ViewModels | [viewmodels.md](../convention/viewmodels.md) | 입력 수신·바인딩, ViewModelBase, Command |
-| Services | [services.md](../convention/services.md) | 프로세스 제어 등 비즈니스 로직, 인터페이스 분리 |
+| Services | [services.md](../convention/services.md) | 프로세스 제어 등 비즈니스 로직(구현체) |
 | Shared | [shared.md](../convention/shared.md) | Core/Controls/Converters/Styles 공유 자산 |
 
 작업 절차는 [workflow/](../INDEX.md) 참조.
@@ -141,6 +144,7 @@ src/ControlTowerWin/
 | 최상위 분할 | Shell / Features / Shared 고정 | NestJS app / feature / common 대응, 예측가능성 |
 | 기능 내부 | Models/Views/ViewModels/Services 레이어 | 어느 기능을 열어도 동일 위치에 동일 역할 |
 | 레이어 폴더 | **점진적 승격** (파일 1개 평면 → 2개↑ 폴더화) | 빈 폴더·1파일 폴더 양산 방지 |
+| 인터페이스 | **항상 `Interfaces/` 분리** (개수 무관, 점진 승격 예외) | 계약 산재 방지, 계약↔구현 명확 분리 |
 | Feature 간 통신 | 직접 참조 지양, Shared/Core 경유 또는 Shell 조합 | 결합도 최소화, 모듈 격리 |
 | VM↔View 매핑 | 명시적 DataTemplate / ViewModelLocator | 폴더 분산으로 자동 규칙(`*View`↔`*ViewModel`) 깨짐 대응 |
 | 네임스페이스 | 폴더 경로와 일치 (`ControlTowerWin.Features.X.Views`) | x:Class 정합성, 탐색 직관성 |
