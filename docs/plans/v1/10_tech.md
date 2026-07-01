@@ -37,7 +37,7 @@
 
 | TS | 영역 | 확정 기술 | 결정 | 대안(fallback) | 관련 NFR | 관련 RISK |
 |---|---|---|---|---|---|---|
-| TS-01 | Frontend/UI | WPF (.NET 10 LTS) + MVVM(CommunityToolkit.Mvvm) | REUSE 구조 | WinUI3·Avalonia | 019·016·014 | — |
+| TS-01 | Frontend/UI | WPF (.NET 10 LTS) + MVVM(CommunityToolkit.Mvvm) | REUSE | WinUI3·Avalonia | 019·016·014 | — |
 | TS-02 | **Embedded Terminal Engine** | **EasyWindowsTerminalControl** — 공식 Windows Terminal 렌더러(Microsoft.Terminal.Control/Wpf) + ConPTY 내장. 파서·렌더·substrate 일체 | **INTEGRATE/BUY** | self-build(TS-03) | 001·015·013·019 | 001·002·003 |
 | TS-03 | **Terminal Substrate (fallback)** | MS `GUIConsole.ConPTY` 샘플 — ConPTY 자체 P/Invoke + VT 자체 렌더 | **BUILD(폴백)** | — | 019·001 | 003 |
 | TS-04 | **Session Injection/Capture** | `TermPTY.WriteToTerm`(주입) · `InterceptOutputToUITerminal`·`GetConsoleText()`(캡처) | INTEGRATE(컨트롤 API) | — | 002·001·022 | 004 |
@@ -90,7 +90,7 @@
 
 ### [TS-01] Frontend/UI — WPF (.NET 10 LTS) + CommunityToolkit.Mvvm — REUSE
 - 후보: WPF vs WinUI3 vs Avalonia. 추천: **WPF**.
-- 근거: 기존 소스(Shell/Features/Shared) WPF 확정(NFR-019·C9), .NET 10 LTS, MVVM=`ObservableObject`/`RelayCommand`(`Shared/Core` 정합). EmbeddedTerminal은 VM-First `DataTemplate` 매핑으로 조합.
+- 근거: **Feature×Layer 모듈 구조**로 WPF 확정(NFR-019·C9), .NET 10 LTS, MVVM=`ObservableObject`/`RelayCommand`(`Shared/Core` 계층 정합). EmbeddedTerminal은 VM-First `DataTemplate` 매핑으로 조합.
 - 고려: WinUI3 TerminalControl 직접 임베드는 SwapChainPanel 투명 합성 불가·Win10 제약·주입 API 미노출로 배제 — 그 백엔드(공식 WT 렌더러)만 WPF용으로 취하는 것이 TS-02.
 
 ### [TS-02] Embedded Terminal Engine — EasyWindowsTerminalControl — INTEGRATE/BUY ★핵심
@@ -112,6 +112,7 @@
 - 주입(앱→터미널, 사람 타이핑 공존): `TermPTY.WriteToTerm(ReadOnlySpan<char>)` · `WriteToTermBinary(ReadOnlySpan<byte>)`. 커맨드·트리거 주입(FR-014/027)이 사람 타이핑과 한 입력 경로에 합류한다(NFR-002 ≤100ms).
 - 출력 캡처: `InterceptOutputToUITerminal`(델리게이트) · `LogConPTYOutput`+`ConPTYTerm.GetConsoleText()` · `ReadDelimitedTermPTY`. 관찰(로깅/파싱) 위주로 쓰고 VT 시퀀스 변형은 피한다(변형 시 커서 위치가 어긋난다).
 - 근거: 토큰 집계 원천은 jsonl(C6)이며, 출력 캡처는 진단·자동반응용 보조 관측 채널로 쓴다.
+- **프롬프트-ready 검출**(초기명령 순차 주입·트리거 FR-012·027): 초기명령을 순차 주입하려면 각 명령 후 셸/claude가 다음 프롬프트를 받을 준비가 됐는지 **출력 스트림으로 판단**해야 한다(무작정 연달아 쏘면 유실·오정렬). 최소 1규약 채택 — (a) **출력 안정 타임아웃**(마지막 출력 후 N ms 무변동 = ready, v1 기본 규약) 또는 (b) **프롬프트 마커/OSC 감지**(셸 프롬프트 정규식 또는 OSC 133 semantic-prompt 시퀀스). v1 기본은 (a), 정밀도 필요 시 (b)로 승격. §7 PoC 검증 항목(RISK-004 확장).
 - 고려: 캡처 델리게이트 호출 스레드·주입-타이핑 충돌 여부(RISK-004). VM→컨트롤 TermPTY 접근은 코드비하인드 주입 또는 attached behavior로 MVVM 경계를 지킨다.
 
 ### [TS-05] Backend/앱 서비스 — in-proc .NET 서비스 + DI — BUILD
@@ -127,6 +128,8 @@
 
 ### [TS-08] Observability/토큰 — 증분 jsonl 파서 — BUILD-light
 - 추천: 세션별 마지막 오프셋 저장, append분만 `Utf8JsonReader` 스트리밍 파싱·누적 집계(NFR-005 100MB ≤500ms·C6). 미지 필드 무시·손상 라인 skip(NFR-020).
+- **관측 계약(소비)**: 경로 `~/.claude/projects/**/*.jsonl`(프로젝트별 세션 트랜스크립트). 토큰 usage는 **assistant 메시지 단위**로 집계(메시지의 입력/출력/캐시 토큰 필드 합산). 세션 상관 = jsonl의 `session-id`·`cwd` ↔ 앱 세션의 `as`·`cwd` 매핑으로 앱-소유 세션에 귀속(C1).
+- **비공식 스키마 방어**: 위 필드는 Claude Code 비공식 포맷이라 방어적 파싱(NFR-020) — 미지 필드 무시·손상 라인 skip·rotation 시 오프셋 리셋. 실 필드명·중첩 구조 확정은 실제 트랜스크립트 샘플 확보 후 **13 O5**(claude jsonl 실 스키마 샘플)에 위임한다.
 - 보조: TS-04 출력 캡처가 세션 출력 로깅·진단을 보강한다(토큰 원천은 jsonl 유지).
 
 ### [TS-09] Infrastructure/배포 — ClickOnce + native 동봉 — REUSE+
@@ -324,6 +327,34 @@ sequenceDiagram
 ```
 캡션: 외부 네트워크 SaaS·유료 API 0건(로컬 전용). 핵심 코드 의존이 EXT-01(엔진)에 집중되며, 그 아래 native 자산(conpty.dll·OpenConsole.exe)은 .NET SDK 앱에 자동 복사되지 않아 수동 `<None>` 복사가 구조적으로 필수다(RISK-001). beta CI 패키지(EXT-02/03)는 버전을 정확히 핀한다(RISK-003).
 
+### 6-1. IPC 파일 계약 스냅샷 (EXT-08 확장 · skill_ipc_control 소비 계약 · C4 재구현 금지)
+
+앱은 아래 파일 규약을 **읽기/watch + 스크립트 호출**로만 소비한다 — relay·큐·`id` 발번 로직은 재구현하지 않는다(C4·NFR-017). 계약은 읽기 전용 어댑터 `IIpcFileContract` 1곳에 캡슐화한다(RISK-008).
+
+**채널 디렉토리** — `channels/<ch>/`:
+
+| 파일 | 역할 | 포맷·비고 |
+|---|---|---|
+| `inbox.log` | 채널 메시지 로그 | **JSON Lines**(한 줄 = 한 메시지). 봉투 필드: `id`(서버 발번) · `ts`(서버 타임스탬프) · `from`(송신 `as`) · `to`(수신 대상) · `body`(본문). |
+| `.relay_url` | 디바이스간 중계 URL | 단일 URL 문자열. v1은 미사용(수신 포트 0), v2 HTTP relay 준비. |
+| `.cursor_<as>` | 소비 커서 | 해당 `as`가 마지막으로 본 봉투 `id`. 증분 read 기준점. |
+| `.watcher_<as>.pid` | listening 신호 | 해당 `as`의 watcher 프로세스 PID(존재 = 수신 대기 중). stale PID는 가드 의미론으로 흡수(NFR-010). |
+
+**스크립트**(프로세스 호출 — 앱은 인자만 전달, `id`·`ts`는 서버가 부여):
+
+- `send.cmd <channel> <from> <to> <message>` — 봉투 append(서버가 `id`·`ts` 부여, 앱은 발번하지 않음).
+- `set_url.cmd <channel> <url>` — `.relay_url` 설정(v2 relay 준비).
+
+**`to` 컨벤션 + 수신 매칭**:
+
+| `to` 값 | 의미 | 매칭 규칙 |
+|---|---|---|
+| `<single>` | 1:1 | 수신자 `as`가 값과 일치 시 매치. |
+| `all` | 전원 | 채널 전원 매치. |
+| `<a,b,c>` | 쉼표 그룹 | 그룹에 자신(`as`)이 포함되면 매치. |
+
+캡션: 앱 관측/송신은 이 파일 계약의 **소비자**다 — `inbox.log`를 watch(≤2s·NFR-004)·`.cursor_<as>`로 증분 소비·`send.cmd`로 송신·`.watcher_<as>.pid`로 상대 수신성 판정. 계약 변동은 어댑터 1곳에서 흡수(RISK-008·C4).
+
 ---
 
 ## 7. 기술 리스크 및 PoC
@@ -388,7 +419,7 @@ substrate·파서·렌더가 통합 엔진에 흡수되므로, PoC의 핵심은 
  1. csproj(RID·UseRidGraph·GeneratePathProperty·<None>) + restore/build (RISK-001)
  2. EasyTerminalControl 임베드 -> pwsh 렌더 + 사람 타이핑 (RISK-001/002)
  3. claude TUI 진입 alt-screen 렌더 (RISK-005)
- 4. TermPTY.WriteToTerm 명령 주입 + 출력 캡처(타이핑 공존) (RISK-004)
+ 4. TermPTY.WriteToTerm 명령 주입 + 출력 캡처(타이핑 공존) + 초기명령 순차 주입 프롬프트-ready 검출(출력 안정 타임아웃) (RISK-004)
  5. RestartTerm/DisconnectConPTYTerm + 창 닫힘 자식 정리(좀비 0) (RISK-006)
  6. 경고배너/로그 별도 패널 + 컨텍스트 메뉴(airspace) (RISK-002)
  7. ClickOnce 게시 -> 클린 머신 native 동봉 실행 (RISK-010)
@@ -399,6 +430,7 @@ substrate·파서·렌더가 통합 엔진에 흡수되므로, PoC의 핵심은 
 
 ## 8. 배포 토폴로지
 
+- **기준 하드웨어(성능 게이트 판정 기준)**: 합리적 Win11 x64 데스크톱 — **4코어 CPU · 16GB RAM · SSD**. NFR-003(동시 세션 ≥8)·성능 게이트(11 G7)·성능 NFR(001 렌더·002 주입·004 watch·005 파싱) 판정은 이 기준 사양에서 측정한다(저사양은 best-effort).
 - **클라우드**: 없음(로컬 데스크톱, 수신 포트 0·NFR-006).
 - **배포 방식**: ClickOnce(자동 업데이트 FR-041) — native 자산(conpty.dll·OpenConsole.exe·WT 렌더러) 동봉 필수(RISK-010).
 - **환경 분리**: dev(로컬 디버그) / staging(내부 게시·서명·클린 머신 스모크) / prod(정식 게시).

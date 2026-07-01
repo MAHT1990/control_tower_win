@@ -29,7 +29,7 @@
 - **상대 일정**: 캘린더 날짜·주차를 고정하지 않는다. 순서는 "Gate 충족 → 다음 단계 착수"의 상대 관계로만 표기한다.
 - **우선순위**: FR의 MoSCoW(04 §0-3)를 승계 — Must는 핵 MVP(L1) 이하 경로, Should는 전체 기능(L2~L3), Could는 후속 마일스톤(M-*).
 - **산출 경계**: 각 레이어의 "핵심 산출물"은 그 단계가 종료될 때 관찰 가능해야 하는 결과물이다.
-- **엔진 전제**: 임베드 터미널 엔진(공식 Windows Terminal 렌더러 임베드)은 VT/ANSI 처리·GPU 셀 렌더·스크롤백·선택 복사·alt-screen/TUI 렌더를 기본 제공한다. 따라서 alt-screen(FR-005) 렌더는 L0에 포함되며, 커맨드/스킬 주입(FR-014·027)은 입력 경로로 substrate 단계부터 가용하다(렌더 완성도와 무관).
+- **엔진 전제**: 임베드 터미널 엔진(10 TS-02 선정)은 VT/ANSI 처리·GPU 셀 렌더·스크롤백·선택 복사·alt-screen/TUI 렌더를 기본 제공한다. 따라서 alt-screen(FR-005) 렌더는 L0에 포함되며, 커맨드/스킬 주입(FR-014·027)은 입력 경로로 substrate 단계부터 가용하다(렌더 완성도와 무관).
 
 ---
 
@@ -134,7 +134,7 @@ C2(터미널 substrate 0순위)에 따라 모든 오케스트레이션이 임베
 | RISK | 제목 | 우선 | PoC 집중 이유 |
 |---|---|:--:|---|
 | RISK-001 | 통합 엔진 native 배포(conpty.dll·OpenConsole.exe) | ★최상 | native 부품 미복사 시 빌드는 성공하나 빈 터미널 — 유일한 substrate 저해 요인. 최우선 확인 |
-| RISK-002 | airspace(HwndHost) 오버레이 제약 | 상 | 터미널 위 WPF 겹침 불가 → 경고 배너·로그·게이트를 별도 패널/모달로 배치하는 레이아웃 전제 확립 |
+| RISK-002 | airspace(네이티브 호스팅) 오버레이 제약 | 상 | 터미널 위 WPF 겹침 불가 → 경고 배너·로그·게이트를 별도 패널/모달로 배치하는 레이아웃 전제 확립 |
 | RISK-004 | 주입/캡처 스레딩·주입-타이핑 공존 | 중 | 커맨드/스킬 주입 경로(FR-014·027)가 substrate부터 가용한지 확인(≤100ms·타이핑 공존) |
 | RISK-005 | alt-screen/TUI(claude) 렌더 정확도 | 하 | claude TUI가 엔진 렌더러에서 깨짐 없이 표시되는지 확인 |
 | RISK-006 | 세션 수명·좀비 정리 | 중 | 종료·재시작·창 닫힘 시 ConPTY 자식 정리 — 다중 세션(L1) 안전성의 선결 |
@@ -147,14 +147,14 @@ C2(터미널 substrate 0순위)에 따라 모든 오케스트레이션이 임베
 
 | # | 검증 가설 | 최소 산출 (Walking Skeleton) | 성공 판정 | 소급 RISK |
 |---|---|---|---|---|
-| 1 | native 자산이 출력 폴더에 복사되어 빈 터미널이 발생하지 않는다 | `RuntimeIdentifier=win-x64` · `UseRidGraph=true` · ConPTY 패키지 직접참조(`GeneratePathProperty=true`) · `<None ... CopyToOutputDirectory>` 2줄(conpty.dll·OpenConsole.exe) 포함 csproj + 클린 빌드 | 출력 루트에 핵심 5개(엔진 dll·WT 렌더러 dll·WT Wpf dll·conpty.dll·OpenConsole.exe) 존재 · 빌드 경고 0 | RISK-001 |
+| 1 | native 자산이 출력 폴더에 복사되어 빈 터미널이 발생하지 않는다 | `RuntimeIdentifier=win-x64` · `UseRidGraph=true` · ConPTY 패키지 직접참조(`GeneratePathProperty=true`) · `<None ... CopyToOutputDirectory>` 2줄(conpty.dll·OpenConsole.exe) 포함 csproj + 클린 빌드 | 출력 루트에 핵심 5개(엔진 dll·엔진 렌더러 dll·엔진 WPF dll·conpty.dll·OpenConsole.exe) 존재 · 빌드 경고 0 | RISK-001 |
 | 2 | 엔진 컨트롤 임베드로 pwsh가 렌더되고 사람 타이핑이 반영된다 | `StartupCommandLine="powershell.exe"` 임베드 컨트롤 1개 호스팅 | pwsh 프롬프트 렌더 · 키 입력 반영 · 렌더 깨짐 0 | RISK-001·002 |
 | 3 | claude alt-screen TUI가 깨짐 없이 렌더된다 | 동일 컨트롤에서 claude 실행 → alt-screen 진입 | alt-screen 진입/복귀 정확 · claude TUI 정상 표시(폰트 폴백 포함) | RISK-005 |
-| 4 | 앱→세션 커맨드 주입이 타이핑과 공존하며 ≤100ms 반영된다 | `TermPTY.WriteToTerm` 명령 1줄 주입 + 출력 캡처 델리게이트(UI Dispatcher 마샬링) | 주입 반영 ≤100ms · 사람 타이핑과 충돌 0 · 캡처 로그 정상 | RISK-004 |
-| 5 | 세션 종료·재시작·창 닫힘에서 자식 프로세스가 남지 않는다 | `RestartTerm`/`DisconnectConPTYTerm` + 종료 훅에서 Dispose | 100회 spawn/kill 반복 후 좀비(OpenConsole/pwsh) = 0 | RISK-006 |
-| 6 | airspace 제약 하에서 경고 배너·로그·컨텍스트 메뉴가 정상 배치된다 | 경고 배너·출력 로그를 터미널 존 밖 별도 패널로 + 컨텍스트 메뉴 | 별도 패널 배너 렌더 정상 · 컨텍스트 메뉴 표시 정상(HwndHost 위 허용) | RISK-002 |
+| 4 | 앱→세션 커맨드 주입이 타이핑과 공존하며 ≤100ms 반영된다 | 엔진 경계 입력 주입 API로 명령 1줄 주입 + 출력 캡처 델리게이트(UI Dispatcher 마샬링) | 주입 반영 ≤100ms · 사람 타이핑과 충돌 0 · 캡처 로그 정상 | RISK-004 |
+| 5 | 세션 종료·재시작·창 닫힘에서 자식 프로세스가 남지 않는다 | 엔진 재시작·연결 해제 API + 종료 훅에서 정리(Dispose) | 100회 spawn/kill 반복 후 좀비(OpenConsole/pwsh) = 0 | RISK-006 |
+| 6 | airspace 제약 하에서 경고 배너·로그·컨텍스트 메뉴가 정상 배치된다 | 경고 배너·출력 로그를 터미널 존 밖 별도 패널로 + 컨텍스트 메뉴 | 별도 패널 배너 렌더 정상 · 컨텍스트 메뉴 표시 정상(네이티브 호스팅 위 허용) | RISK-002 |
 | 7 | 게시본이 클린 머신에서 native 동봉으로 실행·렌더된다 | ClickOnce self-contained(win-x64) 게시 → 클린 머신 실행 | 클린 머신에서 터미널 렌더 · native 로드 실패 0 | RISK-010·001 |
-| 8 | beta CI 핀 버전이 재현 가능하게 restore/build된다 | `CI.Microsoft.*` 버전 정확 핀 | 핀 버전 restore/build 재현 · 라이선스 배포 조건 확인 | RISK-003 |
+| 8 | beta CI 핀 버전이 재현 가능하게 restore/build된다 | 엔진 beta CI 버전 정확 핀 | 핀 버전 restore/build 재현 · 라이선스 배포 조건 확인 | RISK-003 |
 
 ### 2-3. Gate0 정량 판정 (P0 → L0)
 
@@ -185,18 +185,18 @@ Gate0은 아래 전 항목이 관찰될 때 통과한다.
   - 엔진 내장 VT/ANSI 처리·GPU 셀 렌더·스크롤백·선택 복사·리사이즈·alt-screen/TUI 렌더를 앱에 노출·연결(FN-TRM-04·05·06·07·09·10·13). 이들은 엔진 기본 제공 기능의 연결이며 alt-screen(FR-005) 렌더도 이 단계에서 확보된다.
   - 탭 컨테이너(단일 pane → 탭 단계화, FN-TRM-08) — 다중 세션 전환.
   - 키보드 입력 포커스·특수키 VT 인코딩(FN-TRM-12).
-  - `ITerminalSession` 엔진 경계 — 주입/캡처/수명을 1곳에 격리(NFR-018 엔진 교체성).
-- **MIG(부트스트랩 → 임베드 정착)**:
-  - MIG-1: 외부 wt 새창 실행 경로(`TerminalLauncher`)를 임베드 컨트롤 기반 앱-소유 세션으로 대체한다(04 Out-of-Scope: "외부 wt 새창 열기 — ConPTY로 대체").
-  - MIG-2: 전역 프로세스 감지 경로(`SessionMonitor`/`ProcessTracker`)를 앱-소유 세션 함대 모델로 정착시킨다(FR-039·FR-017, 앱-소유만 관리).
+  - 엔진 경계 — 주입/캡처/수명을 1곳에 격리(NFR-018 엔진 교체성).
+- **목표 상태(앱-소유 세션 경계)**:
+  - 임베드 세션이 유일한 터미널 실행 경로가 된다(외부 새창 실행 경로 없음, FR-039).
+  - 제어·관측 대상은 앱-소유 세션 함대로 한정된다(FR-017·FR-039).
 - **선행 조건**: Gate0(P0) 통과.
 - **[Gate1] 진입 판정 (L0 → L1)**:
 ```
 [ ] 탭 컨테이너에서 다중 세션 생성·전환·닫기(→종료 연동) 동작
 [ ] 키보드 입력 포커스 · 리사이즈(열/행 재계산·래핑 유지) · 스크롤백 조회 · 선택 복사 동작
 [ ] alt-screen/claude TUI 렌더 안정
-[ ] ITerminalSession 경계 확립 (주입/캡처/수명이 1곳 인터페이스 경유)
-[ ] MIG-1 완료 (임베드 세션이 유일한 터미널 실행 경로)
+[ ] 엔진 경계 확립 (주입/캡처/수명이 1곳 인터페이스 경유)
+[ ] 임베드 세션이 유일한 터미널 실행 경로 (앱-소유 세션만, FR-039·FR-017)
 ```
 
 ### 3-2. L1 — 세션·프로파일 (SES · PRF) — 핵 MVP
@@ -333,6 +333,16 @@ FN-SYS-01 (셸 조합)  --호스팅-->  전 레이어 View
 - **MVP 분기점**: Gate2(L1 종료)가 최소 출시 가능 지점이다. 이후 L2·L3·M-\*는 우선순위(Must→Should→Could)와 여력에 따라 순차 적층한다.
 - **횡단 진행**: X(SEC·SYS)는 별도 단계가 아니라 각 레이어 산출에 동반된다(§3-5의 활성 시점). SEC 강제(FR-038·039)·배포(FR-041)는 P0부터, 셸 조합(FR-040)은 L0부터, 위험 가드·설정(FR-037·042)은 L1부터 동반한다.
 - **역행 규칙**: 어떤 Gate라도 판정 실패 항목이 발생하면 해당 항목의 소급 RISK 완화(10 §7)로 복귀하며, 상위 레이어 적층을 보류한다.
+
+---
+
+## 6. 요약
+
+- **단계 적층**: P0(압축 PoC) → L0(터미널 substrate) → L1(세션·프로파일 = 핵 MVP) → L2(IPC) → L3(관측·자산) → M-PANE·M-RESTORE(후속). 횡단 X(SEC·SYS)는 P0부터 전 레이어 관통.
+- **Gate 전이**: Gate0(substrate 검증) → Gate1(터미널 안정) → Gate2(MVP 출시 게이트) → Gate3(IPC 통과) → Gate4(관측·자산 안정 → 후속). 각 Gate의 정량 체크리스트 전 항목 충족 전 다음 단계 미착수.
+- **FR 배치**: 43/43 전수(미배치 0) — L0 9 · L1 13 · L2 6 · L3 7 · X 6 · M-PANE 1 · M-RESTORE 1.
+- **임계경로**: Gate0(native 배포 검증)이 substrate 임계경로 — 이 게이트가 열려야 L0 이상 진행. MVP 분기점은 Gate2(L1 종료 = v1 최소 출시 가능 지점).
+- **우선순위 흐름**: Must는 L1 이하 필수 경로, Should는 L2~L3, Could는 후속 마일스톤(M-*).
 
 ---
 

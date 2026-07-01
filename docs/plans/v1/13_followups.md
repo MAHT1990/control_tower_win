@@ -32,7 +32,7 @@ MVP(L0+L1) 착수는 막지 않으며, 아래는 해당 레이어 진입 전 확
 | 세션 프로파일 영속화 | JSON 파일 + 원자적 temp→rename (토큰이력·진단 축적 시 SQLite 승격) | 09 §8-4 |
 | 터미널 엔진 | EasyWindowsTerminalControl(공식 WT 렌더러 임베드) · self-build는 폴백 | 10 TS-02/03 |
 | 터미널 파싱/렌더/성능 | 공식 Windows Terminal 렌더러가 담당(자체 파서·셀 렌더러 불요) | 10 TS-02 |
-| alt-screen/TUI 렌더 | 엔진 기본 제공(별도 렌더 단계 불요) | 10 TS-02 |
+| alt-screen/TUI 렌더 | 엔진 기본 제공(별도 렌더 구현 불요) | 10 TS-02 |
 | 프롬프트 편집 v1 범위 | 트리 브라우저 + 읽기/쓰기(Must)·생성/삭제/이름변경(Should), 스키마 검증은 후속 | 04 FR-033~036 |
 
 ---
@@ -58,9 +58,9 @@ MVP(L0+L1) 착수는 막지 않으며, 아래는 해당 레이어 진입 전 확
 |---|:--:|---|---|
 | RISK-001 native 배포 함정 | ★최상 | csproj RID·UseRidGraph·GeneratePathProperty·`<None>` conpty.dll/OpenConsole.exe 복사 | 클린 빌드 native 존재 게이트 |
 | RISK-002 airspace 오버레이 제약 | 상 | 경고배너·로그·게이트는 터미널 존 밖 별도 패널/모달 | 컨텍스트 메뉴 OK 확인 |
-| RISK-003 엔진 의존(beta·라이선스) | 중 | CI 버전 핀·`ITerminalSession` 경계·라이선스 확인·폴백 격리 | 핀 재현·라이선스 게이트 |
-| RISK-004 주입/캡처 스레딩 | 중 | 캡처 델리게이트 Dispatcher 마샬링·`WriteToTerm` 주입-타이핑 공존 | 통합 PoC |
-| RISK-006 세션 수명·좀비 정리 | 중 | `RestartTerm`/`DisconnectConPTYTerm`·창 닫힘 자식 정리 | 100회 spawn/close 좀비 0 |
+| RISK-003 엔진 의존(beta·라이선스) | 중 | CI 버전 핀·엔진 경계 격리·라이선스 확인·폴백 격리 | 핀 재현·라이선스 게이트 |
+| RISK-004 주입/캡처 스레딩 | 중 | 캡처 델리게이트 Dispatcher 마샬링·엔진 주입-타이핑 공존 | 통합 PoC |
+| RISK-006 세션 수명·좀비 정리 | 중 | 엔진 재시작·연결 해제 API·창 닫힘 자식 정리 | 100회 spawn/close 좀비 0 |
 
 → 임계경로는 **native 배포(RISK-001)**. 나머지(파싱·렌더·alt-screen)는 공식 WT 렌더러가 담당하므로 substrate 리스크가 낮다.
 

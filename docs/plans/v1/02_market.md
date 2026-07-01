@@ -160,7 +160,7 @@
 - URL: devblogs "Building Windows Terminal with WinUI" / github.com/Corillian/WindowsTerminal[^winui][^embed]
 - 한줄 정의: Windows Terminal 코어를 임베드하는 재사용 컨트롤(WinUI3).
 - 강점: 성숙한 렌더·VT·탭을 통째로 재사용 가능(이론상 최단 경로).
-- 약점: **WinUI3/UWP** — WPF 앱 임베드 마찰(투명 합성 불가·Win10 제약·접근성 자체 구현), **앱-소유 세션 주입/제어 API 미노출**, 컨트롤 커스터마이즈 통제력 낮음. → 우리 관제탑 요구(임의 세션 주입 FR-014·상태 추적 FR-016·앱-소유 강제 FR-039)를 못 채움 → **자체 렌더 BUILD 정당화**.
+- 약점: **WinUI3/UWP** — WPF 앱 직접 임베드 마찰(투명 합성 불가·Win10 제약·접근성 자체 구현), **앱-소유 세션 주입/제어 API 미노출**, 컨트롤 커스터마이즈 통제력 낮음. → WinUI3 직접 임베드로는 우리 관제탑 요구(임의 세션 주입 FR-014·상태 추적 FR-016·앱-소유 강제 FR-039)를 못 채움 → **공식 WT 렌더러를 WPF에 임베드하는 EasyWindowsTerminalControl 채택(BUY)**, self-build는 폴백(10 TS-03).
 
 ---
 
@@ -238,7 +238,7 @@
 ### 5-2. 참고할 UX / 회피할 함정
 
 - 참고: Conductor "**3~5 병렬 sweet spot**" → NFR-012 상한은 8이나 목록/탭 UX는 3~5 가독 최적화. Warp의 **리뷰 루프·세로 탭 메타**(branch/PR) → 세션 목록 메타 표시 참고. WezTerm **렌더 성능**을 NFR-001 상향 레퍼런스로.
-- 회피할 함정: **ConPTY 뷰포트 소유·리페인트 폭주**(VS Code 문서화) → WPF 렌더러가 대량 리페인트 흡수 설계(NFR-001, FR-005 alt-screen). **각 파이프 별도 스레드 서비스**(ConPTY 데드락 경고) → I/O 스레딩 설계 반영. **WinUI3 컨트롤 임베드 마찰** → 자체 WPF 렌더 유지(외부 컨트롤 유혹 회피).
+- 회피할 함정: **ConPTY 뷰포트 소유·리페인트 폭주**(VS Code 문서화) → 임베드 터미널 엔진이 대량 리페인트를 GPU 렌더러로 흡수(NFR-001, FR-005 alt-screen). **각 파이프 별도 스레드 서비스**(ConPTY 데드락 경고) → I/O 스레딩 설계 반영. **WinUI3 직접 임베드 마찰** → 공식 WT 렌더러를 WPF로 임베드(EasyWindowsTerminalControl 채택), self-build는 폴백.
 
 ### 5-3. Impact vs Effort 우선순위 (deep)
 
@@ -255,7 +255,7 @@
 ```
 
 캡션: 세로축 Impact, 가로축 Effort(왼쪽 Low·오른쪽 High). 사분면 해석:
-- **Big Bets(고Impact·고Effort)**: D1 세션 간 IPC 협업 · D2 ConPTY 임베드+렌더 → v1 핵심 투자, PoC 선행(리스크 B2·B3).
+- **Big Bets(고Impact·고Effort)**: D1 세션 간 IPC 협업 · D2 ConPTY 임베드+렌더 → v1 핵심 투자, PoC 선행(결정 B2·B3).
 - **Quick Wins(고Impact·저Effort)**: D5 토큰 내장(ccusage 로직 참고) · D3 세션 프로파일 프리셋 → 초기 마일스톤에서 차별화 조기 가시화.
 - **Fill-ins(저Impact·저Effort)**: D6 자산 편집 · D7 로컬 포지셔닝 → 여력 시.
 - **Defer(저Impact·고Effort)**: alt-screen 완전 렌더(②단계)·pane 분할(FR-008)·상태 완전 복원(FR-043) → 후속 마일스톤(브리프 결정 #5/#8과 정합).

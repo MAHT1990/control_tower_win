@@ -1,7 +1,7 @@
 # 07. 인터페이스 설계 (IA · 화면 · 흐름 · UX)
 
 > 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 22 / FR 커버리지 43/43 (100%) · 고아 화면 0
-> 본 문서는 Control Tower 단일 WPF 셸의 정보구조(IA)·화면 명세(SC)·사용자 흐름·UX 원칙을 정의한다. API·DTO 계약은 08, 데이터 모델(ENT)은 09 소관이며, 화면이 필요로 하는 데이터는 "무엇이 보인다" 수준으로만 기술한다.
+> 본 문서는 Control Tower 단일 WPF 셸의 정보구조(IA)·화면 명세(SC)·사용자 흐름·UX 원칙을 정의한다. 08(REST/API)은 서버 부재로 제외하며, 데이터 형상=09·in-proc 계약=10 소관이다. 화면이 필요로 하는 데이터는 "무엇이 보인다" 수준으로만 기술한다.
 
 ---
 
@@ -12,7 +12,7 @@
 본 문서는 `04`(FR 43/NFR 22)·`05`(FN 53)가 정의한 "무엇을"과 `06`(BS 22/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 단일 pane→탭)를 반영한다.
 
 - **정의하는 것**: 앱 단일 셸의 영역(존) 구성(IA) / 각 화면의 목적·구성요소·상호작용·표시 데이터·연결 FN/FR·진입/이탈(SC) / 모드(UT)별 화면 전이 흐름 / 키보드 중심 UX 원칙·전환 가드.
-- **정의하지 않는 것(경계)**: REST 엔드포인트·DTO 스키마=08 / 엔티티·프로파일 영속 스키마·ERD=09 / 터미널 엔진·아키텍처 검증=10. 본 문서는 "어떤 정보가 화면에 보이는가"까지만 적고 계약은 넘긴다.
+- **정의하지 않는 것(경계)**: 08(REST 엔드포인트·DTO)은 서버 부재로 제외 / 데이터 형상(엔티티·프로파일 영속 스키마·ERD)=09 / in-proc 계약·터미널 엔진·아키텍처 검증=10. 본 문서는 "어떤 정보가 화면에 보이는가"까지만 적고 계약은 넘긴다.
 - **RBAC 부재 반영(03 계승)**: 단일 파워유저·로컬·인증 없음(제약 C7)이므로 Public/Auth/Admin 화면군이 없다. 화면 분류의 "대상 UT"는 *권한 차단*이 아니라 *운영 모드(hat)의 주 사용 맥락*을 뜻한다. 모든 화면은 원칙상 UT-001(루트)이 접근 가능하며, 표기된 UT는 그 화면을 주로 행사하는 모드다.
 - **06 핵심 요구의 화면화**: (a) **활성 세션 명시**·(b) **주입 대상 확인 게이트**·(c) **상태 배지**·(d) **경로 경계 시각화**를 SC 설계의 1급 제약으로 삼는다(03 §4-3 주의 분산 방지, BS-004/005/011/014).
 
@@ -41,7 +41,7 @@
 | SC-01 | 앱 메인 셸 (App Shell) | Shell/System | S | UT-001 | FR-040 | FN-SYS-01 |
 | SC-02 | 설정 (Settings) | Shell/System | O | UT-004 | FR-042·038 | FN-SYS-03·SEC-02 |
 | SC-03 | 시작 복원 프롬프트 (Startup Restore) | Shell/System | O | UT-001 | FR-043·018 | FN-SYS-04·SES-10 |
-| SC-04 | 종료 확인 (Exit / Cleanup Confirm) | Shell/System | O | UT-001 | FR-001·015·039 | FN-TRM-02·SES-05·SEC-03 |
+| SC-04 | 종료 확인 (Exit / Cleanup Confirm) | Shell/System | O | UT-001 | FR-001·015·039 | FN-TRM-01·02·SES-05·SEC-03 |
 | SC-05 | 업데이트 알림 (Update Notice) | Shell/System | O | UT-001 | FR-041 | FN-SYS-02 |
 | SC-06 | 진단 로그 뷰 (Diagnostics Log) | Shell/System | O | UT-005 | FR-016(NFR-022) | FN-SYS-05·SES-08 |
 | SC-07 | 터미널 탭 바 (Terminal Tab Bar) | Main | T | UT-003·002 | FR-006 | FN-TRM-08 |
@@ -109,7 +109,7 @@
  |
  +-- CENTER TERMINAL ZONE (T)
  |     +-- TAB BAR         SC-07   (active tab = active session 明示)
- |     +-- TERMINAL VIEW   SC-08   (render1/2, scrollback, focus)
+ |     +-- TERMINAL VIEW   SC-08   (alt-screen, scrollback, focus)
  |     |     +-- SELECTION MENU  SC-09
  |     |     +-- PANE SPLIT      SC-10  [Could/후속]
  |     +-- COMMAND BAR     SC-12   (target = active session, guarded)
@@ -145,10 +145,10 @@
 |          | CMD-BAR SC-12  target:[tower2] > {cmd}___ |  SEND     |
 |          +-------------------------------------------+  SC-18    |
 +----------+-------------------------------------------+-----------+
-| status: session running · render stage 1 · port:0(local-only)   |  S (status bar)
+| status: session running · port:0 (local-only, no relay)         |  S (status bar)
 +==================================================================+
 ```
-캡션: WPF 데스크톱 관제탑 3-존 레이아웃. 좌(재료·함대) / 중앙(터미널 substrate) / 우(협업·관측). 하단 상태바에 렌더 단계·로컬 전용(포트 0, FN-SEC-02) 정책을 상시 표기. 좌/우 도크는 각각 1개 뷰만 활성(공간 절약), 중앙 탭 바의 활성 탭이 곧 **활성 세션**임을 색·굵기로 명시.
+캡션: WPF 데스크톱 관제탑 3-존 레이아웃. 좌(재료·함대) / 중앙(터미널 substrate) / 우(협업·관측). 하단 상태바에 로컬 전용(포트 0, FN-SEC-02) 정책을 상시 표기. 좌/우 도크는 각각 1개 뷰만 활성(공간 절약), 중앙 탭 바의 활성 탭이 곧 **활성 세션**임을 색·굵기로 명시.
 
 ### 2-3. 운영 모드(UT)별 화면 맥락 차이
 
@@ -173,7 +173,7 @@
 
 ## 3. 화면 명세
 
-> 각 SC: 분류/존·대상 UT·관련 FR/FN·목적·핵심 구성요소·표시 데이터·주요 상호작용·상태(로딩/빈/에러)·진입/이탈·와이어프레임(deep). 표시 데이터의 계약(필드·타입)은 08/09 소관.
+> 각 SC: 분류/존·대상 UT·관련 FR/FN·목적·핵심 구성요소·표시 데이터·주요 상호작용·상태(로딩/빈/에러)·진입/이탈·와이어프레임(deep). 표시 데이터의 형상(필드·타입)은 09, in-proc 계약은 10 소관(08은 서버 부재로 제외).
 
 ### 3-1. Shell / System 존
 
@@ -181,8 +181,8 @@
 - 분류/존: Shell/System · S · 대상 UT-001(전 모드 컨테이너)
 - FR/FN: FR-040 / FN-SYS-01 (관련 품질 NFR-016 Feature×Layer)
 - 목적: 터미널/세션/프로파일/채널/관측/자산 View를 3-존으로 배치·조합하는 얇은 셸. 비즈니스 로직 없음, Feature 모듈 호스팅만.
-- 핵심 구성요소: 상단 크롬(new-session·settings·업데이트 배지·소유 세션 카운터) / 좌 내비 도크 / 중앙 터미널 존 / 우 오케스트레이션 도크 / 하단 상태바(렌더 단계·포트 0 정책).
-- 표시 데이터: {owned session 수}, {render stage 1|2}, {local-only port:0}, {update available?}.
+- 핵심 구성요소: 상단 크롬(new-session·settings·업데이트 배지·소유 세션 카운터) / 좌 내비 도크 / 중앙 터미널 존 / 우 오케스트레이션 도크 / 하단 상태바(포트 0 정책).
+- 표시 데이터: {owned session 수}, {local-only port:0}, {update available?}.
 - 상호작용: 존 도크 전환(좌 SESS/PROF/ASSET, 우 CHAN/CONV/TOKEN), 존 리사이즈(그립 드래그, 반응형), 전역 단축키 라우팅(§5-2).
 - 상태: 로딩=스플래시+"restoring layout"(SC-03 연계) / 빈=세션 0 시 중앙에 "Spawn your first session" CTA / 에러=Feature 모듈 로드 실패 시 해당 존만 오류 카드(격리, 타 존 정상).
 - 진입: 앱 기동(Flow F) / 이탈: 종료 요청→SC-04.
@@ -193,7 +193,7 @@
 | LNAV   |            T  ZONE (terminal)            | R ZONE  |
 | dock   |                                          | dock    |
 +--------+------------------------------------------+---------+
-| status: render:{stage} | port:0 local-only | {msg}          |
+| status: port:0 local-only | {msg}                          |
 +------------------------------------------------------------+
 ```
 캡션: 상단·좌·중앙·우·하단 5분할. 좌우 도크는 접기 가능(반응형). 존 로드 실패는 해당 존 카드만 오류로 격리.
@@ -201,7 +201,7 @@
 #### [SC-02] 설정 (Settings)
 - 분류/존: Shell/System · O(모달/전체 오버레이) · 대상 UT-004
 - FR/FN: FR-042·038 / FN-SYS-03·SEC-02 (관련 NFR-006 포트 0)
-- 목적: 핵심 경로(~/.claude·channels 루트)·기본 프로파일·렌더 단계·정책 표기를 관리·영속.
+- 목적: 핵심 경로(~/.claude·channels 루트)·기본 프로파일·정책 표기를 관리·영속.
 - 핵심 구성요소: 경로 입력(검증 배지) / 기본 프로파일 선택 / 보안 정책 표기(포트 0·로컬 전용, read-only) / 저장·취소.
 - 표시 데이터: {claudeRoot}, {channelsRoot}, {defaultProfile}, {listeningPorts:0 고정 표기}.
 - 상호작용: 경로 편집→유효성 검사(FN-PRF-02 계열 경로 검사), 설정 변경→저장→영속(원자적).
@@ -214,7 +214,6 @@
 |  channels    : {..../channels........} [check !] |  <- 경로 검증 배지
 | DEFAULTS                                         |
 |  default profile : [ tower2      v]              |
-|  render stage    : (o)1  ( )2                    |
 | SECURITY (read-only)                             |
 |  listening ports : 0  (local-only, no relay)     |  <- FN-SEC-02 정책 표기
 +--------------------------------------------------+
@@ -247,7 +246,7 @@
 
 #### [SC-04] 종료 확인 (Exit / Cleanup Confirm)
 - 분류/존: Shell/System · O · 대상 UT-001
-- FR/FN: FR-001(lifecycle)·015·039 / FN-TRM-02·SES-05·SEC-03 (BS-022, 엣지 E15)
+- FR/FN: FR-001(lifecycle)·015·039 / FN-TRM-01·02·SES-05·SEC-03 (BS-022, 엣지 E15)
 - 목적: 앱 종료 시 소유 ConPTY 세션 일괄 정리(고아 프로세스 0)·미저장 자산/프로파일 저장 유도. **외부 프로세스는 대상 아님(SEC-03 범위 강제)**.
 - 핵심 구성요소: 정리 대상 소유 세션 목록 / 미저장 항목 경고 / "저장 후 종료"·"종료"·"취소".
 - 표시 데이터: {ownedSessions: [as·상태]}, {unsavedAssets/profiles 수}.
@@ -327,12 +326,12 @@
 #### [SC-08] 터미널 뷰 (Terminal View)
 - 분류/존: Main · T · 대상 UT-003(주)·UT-005(read)
 - FR/FN: FR-002·003·004·005·007·009 / FN-TRM-03·04·05·06·07·09·10·12 (BS-007·008·009, 엣지 E4·E13)
-- 목적: 세션 출력을 공식 WT 렌더러로 실시간 렌더(색·커서·스크롤백·alt-screen/claude TUI). 포커스 타이핑·리사이즈·스크롤백 조회를 제공하는 substrate 화면.
+- 목적: 세션 출력을 임베드 터미널 엔진(10 참조)으로 실시간 렌더(색·커서·스크롤백·alt-screen/claude TUI). 포커스 타이핑·리사이즈·스크롤백 조회를 제공하는 substrate 화면.
 - 핵심 구성요소: 셀 그리드(전경/배경색·커서) / 스크롤백 뷰포트+스크롤바 / alt-screen 모드 전환(TUI) / 입력 포커스 링 / 리사이즈 그립(PTY 재조정).
 - 표시 데이터: {screenBuffer cells}, {cursor pos}, {scrollback offset}, {alt-screen active?}, {cols×rows}.
 - 상호작용: 포커스 시 키 입력→VT 인코딩→입력 파이프 write(FN-TRM-12, 특수키 Ctrl+C/방향키/Enter) / 휠·스크롤바 스크롤백 조회(신규 출력 시 자동 하단 복귀) / 뷰 리사이즈→ResizePseudoConsole 재래핑(디바운스) / 드래그 선택→SC-09.
 - 상태: 로딩=세션 starting 시 "connecting pty…" / 빈=출력 없음(프롬프트 대기) / 에러=파이프 오류→세션 error 표시+"session error, see diagnostics"(SC-06 링크).
-- **airspace 제약**: SC-08은 EasyWindowsTerminalControl(native HwndHost)이라 터미널 위에 WPF 요소를 겹칠 수 없다. 세션 error 표시·출력 로그는 터미널 존 밖 별도 패널(하단/우측), 위험 게이트(SC-13)는 별도 모달로 배치한다. 선택 컨텍스트 메뉴(SC-09)만 터미널 위 허용.
+- **airspace 제약**: SC-08은 임베드 터미널이 네이티브 호스팅이라 그 위에 WPF 요소를 겹칠 수 없다(10 참조). 세션 error 표시·출력 로그는 터미널 존 밖 별도 패널(하단/우측), 위험 게이트(SC-13)는 별도 모달로 배치한다. 선택 컨텍스트 메뉴(SC-09)만 터미널 위 허용.
 - 진입: 탭 선택(SC-07) / 이탈: 선택→SC-09, 명령→SC-12, 크래시→SC-11 배지/SC-06.
 ```
 +-- TERMINAL VIEW  SC-08  (as: tower2 [>]) --------+^| <- scrollbar
@@ -341,7 +340,7 @@
 | > implement the parser boundary...              |||
 | _cursor_                                        |v|
 +-------------------------------------------------+-+
-| (render stage 2: alt-screen)   cols80 x rows24   |
+| (alt-screen)                   cols80 x rows24   |
 +--------------------------------------------------+
 ```
 캡션: 색·커서·스크롤백·alt-screen(claude TUI)을 엔진이 렌더하며 주입·제어는 렌더와 독립으로 가용(C10). 대량 출력도 엔진 GPU 렌더러가 처리(NFR-001). 스크롤 중 신규 출력 도착 시 자동 하단 복귀.
@@ -380,6 +379,25 @@
 +---------+---------+
 ```
 캡션: v1 범위 밖(Could). 후속 마일스톤 자리 예약으로 IA 연속성 확보.
+
+#### [SC-11] 세션 목록 패널 (Session Fleet List)
+- 분류/존: Main · L · 대상 UT-002·003·005(관측 read)
+- FR/FN: FR-016·017·018·015·039·032 / FN-SES-07·08·09·10·05·06·OBS-03·SEC-03 (BS-006·010·019, 엣지 E10)
+- 목적: 앱-소유 다중 세션을 한 목록으로 개관·전환·상태 추적·정리(종료/재시작/강제종료). **앱-소유 범위 표기**(외부 프로세스 배제, SEC-03)와 상태 가시성이 1급 제약.
+- 핵심 구성요소: 세션 카드(as·pid·profile) / 상태 배지(`[*]`starting·`[>]`running·`[x]`exited·`[!]`error) / 세션별 토큰 열(SC-20 동기) / [종료]·[재시작]·[강제종료] 액션 / 앱-소유 범위 표기(owned only).
+- 표시 데이터: {sessions[]: as·pid·state·profile·tokens}.
+- 상호작용: 세션 선택→해당 탭 활성(SC-07/08 동기, FN-SES-09) / [종료]→BS-010 정상 종료 / [재시작]→BS-019 재기동 / [강제종료]→무응답 폴백 kill(E10) / 정리 판단→BS-006(토큰 소진순, SC-20 연계). 다중 선택→SC-12 다중 주입 대상.
+- 상태: 로딩=세션 스캔 / 빈=세션 0→"Spawn your first session" placeholder(SC-01 연계) / 에러=세션 error 시 격리 배지 [!]+진단 링크(SC-06).
+- 진입: 좌 도크 SESSIONS / Flow C·D / 이탈: 선택→SC-07/08, 정리→SC-04 유형 확인, 이상→SC-06.
+```
++------- SESSIONS (SC-11)  owned:3 (app-owned only) -------+
+| as        state    tokens                                |
+| tower2    [>]       1.07M   [End] [Restart] [Kill]        |
+| sangmin   [>]        420K   [End] [Restart] [Kill]        |
+| proj_7    [!]err      --    [End] [Restart] [Kill]        |  <- 격리 배지
++----------------------------------------------------------+
+```
+캡션: 앱-소유 세션만 목록·정리 대상(외부 프로세스 배제, SEC-03). 선택 시 중앙 탭·활성 세션과 동기, 상태 배지로 함대 건강을 즉시 식별. 크래시 세션은 격리 배지로 표면화(NFR-009), 정리 판단은 토큰 열(SC-20 동기)을 근거로 한다.
 
 #### [SC-12] 커맨드 주입 바 (Command Bar)
 - 분류/존: Sub · T · 대상 UT-002·003
@@ -692,8 +710,8 @@ flowchart TD
 관통 BS: BS-007·008·009·010.
 ```
  [SC-07 pick tab] -> [SC-08 focus terminal] -> < alt-screen TUI? >
-                                                | yes -> [render2 claude TUI observe/operate]
-                                                | no  -> [render1 pwsh cells]
+                                                | yes -> [alt-screen claude TUI observe/operate]
+                                                | no  -> [main-screen pwsh cells]
                                                         -> [type keys: Ctrl-C/ARROW/ENTER -> VT]
                                                         -> [SC-09 drag select -> copy logical-line]
                                                         -> < paste to inject? >
@@ -732,7 +750,7 @@ flowchart TD
  [SC-21 context menu] -> < op? create/rename/delete >
                           | delete -> [confirm] -> [path guard] -> [tree refresh]
                           | other  -> [path guard] -> [fs apply] -> [tree refresh]
- [SC-02 settings] -> [edit paths/default-profile/render-stage] -> [persist]
+ [SC-02 settings] -> [edit paths/default-profile] -> [persist]
 ```
 캡션: 트리 브라우징(경계 시각화)→읽기/편집→경로 가드+원자적 저장→CRUD(삭제 확인·가드)→설정. 이탈: 경로 탈출 차단(NFR-008)·삭제 오조작(확인 방어)은 의도된 안전 방어.
 
@@ -807,7 +825,7 @@ flowchart TD
 
 | FR | SC | FR | SC | FR | SC |
 |---|---|---|---|---|---|
-| FR-001 | 07·08·14·04 | FR-016 | 11·06 | FR-031 | 20 |
+| FR-001 | 04 | FR-016 | 11·06 | FR-031 | 20 |
 | FR-002 | 08 | FR-017 | 11 | FR-032 | 20·11 |
 | FR-003 | 08 | FR-018 | 11·03 | FR-033 | 21 |
 | FR-004 | 08 | FR-019 | 15 | FR-034 | 22 |
@@ -816,7 +834,7 @@ flowchart TD
 | FR-007 | 08 | FR-022 | 14 | FR-037 | 13 |
 | FR-008 | 10 | FR-023 | 15 | FR-038 | 02 |
 | FR-009 | 08 | FR-024 | 16 | FR-039 | 11·04 |
-| FR-010 | 09·08 | FR-025 | 18 | FR-040 | 01 |
+| FR-010 | 09 | FR-025 | 18 | FR-040 | 01 |
 | FR-011 | 14 | FR-026 | 16 | FR-041 | 05 |
 | FR-012 | 14·15 | FR-027 | 19 | FR-042 | 02 |
 | FR-013 | 15·14 | FR-028 | 17 | FR-043 | 03 |

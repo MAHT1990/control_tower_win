@@ -12,7 +12,7 @@
 본 문서는 `04`(FR 43/NFR 22)·`05`(FN 53)·`07`(SC 22)가 요구하는 데이터를 엔티티로 영속화하고, `00_meeting_brief` §4 도메인 모델(SessionProfile·Session·Channel·TokenUsage)을 구체 스키마로 확정한다.
 
 - **정의하는 것**: 엔티티(ENT)·컬럼·타입·제약·관계·인덱스 방향 / **영속화 형태 결정(JSON vs SQLite, 후속숙제 ①)** / 영속·런타임·투영 3분류 경계 / 파일 레이아웃·원자적 저장(NFR-011) / FR 전수 커버리지.
-- **정의하지 않는 것(경계)**: REST/DTO 계약=08 / 화면 배치=07 / VT 파서·렌더 성능·아키텍처=10 / 일정=12.
+- **정의하지 않는 것(경계)**: 08(REST/DTO)은 서버 부재로 제외·in-proc 계약은 10 / 화면 배치=07 / VT 파서·렌더 성능·아키텍처=10 / 일정=12.
 - **이 앱의 데이터 특이성 (설계 대전제)**: Control Tower는 **자체 DB보다 로컬 파일 상태 소비가 큰** 앱이다. 채널 파일(`channels/<ch>/`)·세션 jsonl 트랜스크립트·`~/.claude` 자산은 **skill_ipc_control·Claude Code·OS 파일시스템이 스키마를 소유**하며, 우리는 이를 **read/watch(및 write-through)로 투영(projection)**할 뿐 스키마를 소유하지 않는다(C4·C6·NFR-017·NFR-020). 따라서 앱이 실제로 **소유·영속화하는 데이터는 소수**(프로파일·설정·복원 레이아웃·토큰 캐시·진단 로그)다.
 
 ### 0-2. 엔티티 ID 체계·도메인·영속 분류
@@ -165,7 +165,6 @@ erDiagram
         path claude_root
         path channels_root
         uuid default_profile_id FK
-        int render_stage "DEFAULT 1"
         int listening_ports "CHECK=0"
         bool guard_enabled "DEFAULT true"
         json risk_patterns
@@ -313,7 +312,7 @@ erDiagram
 
 ### 4-1. TRM — 터미널 런타임 [R]
 
-> **엔진 내부 상태**: ENT-001(screen_buffer)·ENT-002(scrollback_buffer)는 EasyWindowsTerminalControl이 내부적으로 유지하는 상태다 — 앱이 직접 소유·모델링하지 않으며, 아래 정의는 그 개념 스케치다. ENT-003(terminal_tab)·ENT-004(session)는 앱 소유.
+> **엔진 내부 상태**: ENT-001(screen_buffer)·ENT-002(scrollback_buffer)는 임베드 터미널 엔진(10 참조)이 내부적으로 유지하는 상태다 — 앱이 직접 소유·모델링하지 않으며, 아래 정의는 그 개념 스케치다. ENT-003(terminal_tab)·ENT-004(session)는 앱 소유.
 
 #### [ENT-001] screen_buffer          (도메인: TRM · [R] 런타임)
 - 설명: 엔진이 유지하는 현재 화면 버퍼(셀 그리드·커서·alt-screen·선택). 비영속(프로세스 종료 시 소멸).
@@ -390,13 +389,14 @@ erDiagram
 | name | string | UNIQUE, NOT NULL | 표시 이름 |
 | intent_tag | string | NOT NULL, INDEX | 의도태그(control/sangmin+noter/Proj_N) — 그룹/필터(FR-022) |
 | cwd | path | NOT NULL, validated(FN-PRF-02) | 작업디렉토리(FR-012) |
-| as | string | UNIQUE(채널-스코프 권고), NOT NULL | IPC 식별자 기본값(런타임 Session.as 시드 FR-023) |
+| as | string | 전역 UNIQUE, NOT NULL | IPC 식별자(런타임 Session.as 시드 FR-023) |
 | claude_autorun | bool | DEFAULT false | claude 자동실행(FR-013) |
 | schema_version | int | DEFAULT 1 | 마이그레이션용(§8-4) |
 | created_at | timestamp | NOT NULL | |
 | updated_at | timestamp | NOT NULL | |
 
 - 임베드 자식: `init_commands[]`(ENT-006) · `inject_skills[]`(ENT-007) · `channel_memberships[]`(ENT-008).
+- 식별자 역할 구분: **`name`=목록 표시명(전역 UNIQUE)** · **`as`=IPC 식별자(전역 UNIQUE)** — 표시용 이름과 프로세스↔채널 정체성 키를 분리한다.
 - 데이터 특성: 소수(수십), 읽기 우위, 원자적 저장(NFR-011). 물리=`profiles/<id>.json` 1파일.
 
 #### [ENT-006] profile_init_command          (도메인: PRF · [P], 임베드)
@@ -531,7 +531,6 @@ erDiagram
 | claude_root | path | DEFAULT `~/.claude` | 자산 루트(FR-033) |
 | channels_root | path | — | 채널 루트(FR-029) |
 | default_profile_id | uuid | FK->ENT-005, nullable | 기본 프로파일(SET NULL) |
-| render_stage | enum | DEFAULT 1 (1/2) | 렌더 단계(NFR-013 무중단) |
 | listening_ports | int | CHECK=0 | 포트 0 정책 표기(FR-038/NFR-006) |
 | guard_enabled | bool | DEFAULT true | 위험 커맨드 가드 on/off(FR-037) |
 | risk_patterns | string[] | — | 위험 패턴 목록(후속 ⑧) |
@@ -622,7 +621,7 @@ erDiagram
 
 ```
 [CON-01] 대상: ENT-005.name | UNIQUE, NOT NULL | 프로파일 이름 유일 | 목록 식별
-[CON-02] 대상: ENT-005.as  | UNIQUE(채널-스코프 권고), NOT NULL | as 유일성 | IPC 정체성 충돌 방지(FR-023, FN-PRF-07)
+[CON-02] 대상: ENT-005.as  | 전역 UNIQUE, NOT NULL | as 유일성(전역) | IPC 정체성 충돌 방지(FR-023, FN-PRF-07)
 [CON-03] 대상: ENT-005.cwd | NOT NULL + 존재 검증 | 유효 경로 | 기동 실패 예방(FN-PRF-02)
 [CON-04] 대상: ENT-005.claude_autorun | DEFAULT false | 미지정 시 순수 pwsh | FR-013
 [CON-05] 대상: ENT-004.state | CHECK IN(starting,running,exited,error) | 상태 도메인 | FR-016
@@ -634,6 +633,8 @@ erDiagram
 [CON-11] 대상: ENT-006.seq | NOT NULL, 프로파일 내 순서 유일 | 실행 순서 결정 | FR-012 순차 주입
 [CON-12] 대상: ENT-008.channel_name | NOT NULL | 채널 참여 대상 | FR-026
 ```
+
+> **as 충돌(동시 기동) 정책**: `name`·`as`는 설계-시 전역 UNIQUE(CON-01·02)이나, 같은 프로파일을 동시에 여러 번 기동하면 런타임 `Session.as`가 충돌한다 → **as 미지정 시 자동 suffix(예: `tower2#2`) 부여, 또는 중복 기동 거부**로 런타임 IPC 정체성 유일성을 보장한다(FN-PRF-07).
 
 ---
 
