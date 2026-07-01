@@ -17,14 +17,19 @@ Features/SendCommand/
 ```
 처음엔 폴더 하나만. 레이어 폴더는 파일이 쌓이면 만든다.
 
-## Step 2. Service (가장 안쪽 — 로직)
+## Step 2. Interface + Service (가장 안쪽 — 계약·로직)
+
+**계약은 `Interfaces/`에, 구현은 `Services/`에** 둔다(인터페이스는 1개여도 항상 분리 — [interfaces.md](../convention/interfaces.md)).
 
 ```csharp
-// Features/SendCommand/Services/IStdinInjector.cs
-namespace ControlTowerWin.Features.SendCommand.Services;
+// Features/SendCommand/Interfaces/IStdinInjector.cs
+namespace ControlTowerWin.Features.SendCommand.Interfaces;
 public interface IStdinInjector { void Send(int pid, string command); }
-
+```
+```csharp
 // Features/SendCommand/Services/StdinInjector.cs
+using ControlTowerWin.Features.SendCommand.Interfaces;   // 계약 참조
+namespace ControlTowerWin.Features.SendCommand.Services;
 public class StdinInjector : IStdinInjector
 {
     public void Send(int pid, string command) { /* 방법 A: RedirectStandardInput */ }
@@ -98,7 +103,8 @@ dotnet build ControlTowerWin.csproj    # x:Class/namespace 정합성 확인
 ## 체크리스트
 
 - [ ] `Features/<기능>/` 폴더 생성 (평면 시작)
-- [ ] Service: 인터페이스(교체 가능성 있으면) + 구현
+- [ ] Interface: 계약을 `Interfaces/`에 분리(1개여도 항상), namespace `...Interfaces`
+- [ ] Service: 구현을 `Services/`에, `using ...Interfaces`로 계약 참조
 - [ ] Model: 필요 시 데이터 record/class
 - [ ] ViewModel: `ViewModelBase` 상속, Service 생성자 주입, `ICommand` 노출
 - [ ] View: `UserControl`, x:Class/namespace = 폴더 경로

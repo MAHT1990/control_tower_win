@@ -6,8 +6,9 @@
 프로세스 추적, 터미널 실행, 커맨드 주입 등 "기능의 알맹이"가 여기 산다.
 
 - 위치: `src/ControlTowerWin/Features/<기능>/Services/`
-- 책임: OS·프로세스 제어, 데이터 수집/가공. UI를 모른다(이상적으로).
+- 책임: OS·프로세스 제어, 데이터 수집/가공. UI를 모른다(이상적으로). **구현체만 둔다.**
 - 노출: ViewModel이 호출하거나, 이벤트로 결과를 통지
+- 계약 분리: 인터페이스(`I*`)는 Services가 아니라 [`Interfaces/`](./interfaces.md)에 둔다(항상 분리). Services는 그 계약의 **구현**만 보유.
 
 ---
 
@@ -62,13 +63,21 @@ public class TerminalLauncher
 }
 ```
 
-### 인터페이스 분리 (교체 가능성이 있을 때)
+### 인터페이스 분리 (계약은 Interfaces/, 구현은 Services/)
 
-SendCommand는 구현 방법이 여러 개(stdin / Win32 / Named Pipe)이므로 인터페이스로 추상화한다.
+SendCommand는 구현 방법이 여러 개(stdin / Win32 / Named Pipe)일 수 있어 인터페이스로 추상화한다.
+이때 **계약은 [`Interfaces/`](./interfaces.md)에, 구현만 `Services/`에** 둔다(인터페이스는 1개여도 항상 분리).
 
 ```csharp
+// Features/SendCommand/Interfaces/IStdinInjector.cs
+namespace ControlTowerWin.Features.SendCommand.Interfaces;
 public interface IStdinInjector { void Send(int pid, string command); }
-public class StdinInjector : IStdinInjector { ... }   // 방법 A: RedirectStandardInput
+```
+```csharp
+// Features/SendCommand/Services/StdinInjector.cs
+using ControlTowerWin.Features.SendCommand.Interfaces;   // 계약 참조
+namespace ControlTowerWin.Features.SendCommand.Services;
+public class StdinInjector : IStdinInjector { /* 방법 A: RedirectStandardInput */ }
 ```
 
 ---

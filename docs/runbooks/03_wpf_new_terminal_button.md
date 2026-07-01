@@ -57,8 +57,10 @@ DispatcherTimer (1초 간격)
 개별 `Process` 객체에 이벤트 핸들러를 등록하면, 해당 프로세스 종료 시 즉시 호출된다.
 
 ```csharp
-process.EnableRaisingEvents = true;  // 이벤트 발화 활성화 (기본값 false)
-process.Exited += (s, _) => { ... }; // 종료 시 즉시 호출
+/* 이벤트 발화 활성화 (기본값 false) */
+process.EnableRaisingEvents = true;
+/* 종료 시 즉시 호출 */
+process.Exited += (s, _) => { ... };
 ```
 
 > **Exited는 별도 스레드에서 발화된다.**
@@ -78,8 +80,8 @@ foreach (var p in current)              _trackedProcesses[p.Id] = p;  ← 강한
 {                                       p.EnableRaisingEvents = true;
     p.EnableRaisingEvents = true;       p.Exited += ...;
     p.Exited += ...;
-    // 틱 종료 후 p는 지역변수
-    // → GC 수거 → Exited 미발화
+    /* 틱 종료 후 p는 지역변수
+       → GC 수거 → Exited 미발화 */
 }
 ```
 
@@ -247,7 +249,10 @@ namespace HelloWorldWpf
                             Dispatcher.Invoke(() => RemoveTerminal(pid));
                         };
                     }
-                    catch { /* 권한 부족 프로세스는 폴링으로 감지 */ }
+                    catch
+                    {
+                        /* 권한 부족 프로세스는 폴링으로 감지 */
+                    }
                 }
             }
 
