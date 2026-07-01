@@ -313,10 +313,10 @@ erDiagram
 
 ### 4-1. TRM — 터미널 런타임 [R]
 
-> **★ v2 정합(10 v2)**: 엔진 반전으로 ENT-001(screen_buffer)·ENT-002(scrollback_buffer)는 **EasyWindowsTerminalControl 내부 상태**로 이전 — 앱이 소유·모델링하는 런타임 엔티티가 아니라 컨트롤이 관리(우리 코드는 셀/스크롤백 버퍼를 직접 보유하지 않음). 아래 정의는 "엔진이 내부적으로 유지하는 상태"의 개념 스케치로 재해석. ENT-003(terminal_tab)·ENT-004(session)는 앱 소유 유지.
+> **엔진 내부 상태**: ENT-001(screen_buffer)·ENT-002(scrollback_buffer)는 EasyWindowsTerminalControl이 내부적으로 유지하는 상태다 — 앱이 직접 소유·모델링하지 않으며, 아래 정의는 그 개념 스케치다. ENT-003(terminal_tab)·ENT-004(session)는 앱 소유.
 
 #### [ENT-001] screen_buffer          (도메인: TRM · [R] 런타임)
-- 설명: VT 파서가 산출한 현재 화면 버퍼(셀 그리드·커서·alt-screen·선택). 비영속(프로세스 종료 시 소멸).
+- 설명: 엔진이 유지하는 현재 화면 버퍼(셀 그리드·커서·alt-screen·선택). 비영속(프로세스 종료 시 소멸).
 - 소급 FR: FR-003·004·005·010 / 구현 FN: FN-TRM-04·05·07·13 / 소비 SC: SC-08·09
 
 | 컬럼 | 타입 | 제약 | 설명 |
@@ -325,7 +325,7 @@ erDiagram
 | cells | grid | — | 문자·전경/배경색·속성 |
 | cursor_row | int | — | 커서 행 |
 | cursor_col | int | — | 커서 열 |
-| alt_screen | bool | DEFAULT false | alt-screen 활성(렌더②) |
+| alt_screen | bool | DEFAULT false | alt-screen 활성 |
 | selection | range | nullable | 드래그 선택 영역(복사 원본) |
 
 - 데이터 특성: 순수 인메모리, 고빈도 갱신(diff 렌더 NFR-001). 영속 0.

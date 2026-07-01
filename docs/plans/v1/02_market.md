@@ -12,8 +12,8 @@
 - **결정적 공백(우리의 자리)**: 모든 오케스트레이터는 **git worktree 격리** 모델이다 — 에이전트가 서로 밟지 않게 **분리**하는 데 집중하고, **세션이 서로 대화**하지 않는다. Control Tower의 `skill_ipc_control` 기반 **세션 간 IPC 채널 협업**(FR-024~029)은 조사한 13개 중 어디에도 없는 차별 축이다.
 - **플랫폼 공백**: Conductor는 macOS 전용, Claude Squad는 TUI, Vibe Kanban은 웹. **Windows 네이티브 데스크톱 관제탑**(WPF)은 비어 있는 세그먼트다.
 - **Build vs Buy 핵심 결론(브리프 결정 검증)**:
-  - ConPTY 세션 소유·WPF 셀 렌더러 = **BUILD**(자체) — 기존 임베더블 컨트롤은 attach 불가·WinUI3/UWP 마찰·WPF 렌더 부재로 앱-소유 요구를 못 채운다. 브리프 결정 #4/#6 정당.
-  - VT 시퀀스 파싱 = **BUY/Integrate**(.NET 라이브러리) — 파싱 버그 리스크 제거. 결정 #6 정당(단 후보 실측은 숙제②).
+  - ConPTY 세션 소유·앱-소유·주입 제어 = **BUILD**(자체) — 통제력이 정체성. 브리프 결정 #4 정당.
+  - 터미널 렌더 엔진(파싱·셀 렌더·alt-screen) = **BUY/Integrate**(EasyWindowsTerminalControl — 공식 WT 렌더러 임베드) — 자체 렌더러 대공사 회피. 브리프 결정 #6 정당.
   - IPC 채널/relay = **REUSE**(skill_ipc_control 재사용, GUI 프론트엔드만) — NFR-017 재구현 금지.
   - 토큰 = **BUILD-light**(자체 증분 jsonl 파서, ccusage 로직 참고) — jsonl 소스는 업계 표준 접근.
   - 배포 = **BUY**(ClickOnce 계승).
@@ -100,7 +100,7 @@
 - URL: wezterm.org / OSS / 크로스 / 무료
 - 한줄 정의: GPU(wgpu) 가속 + **내장 멀티플렉서**(윈도/탭/pane, persistent 세션) + Lua 설정.[^wezterm]
 - 강점: 부드러운 스크롤·렌더 성능 벤치마크, pane/탭 UX 관성, SSH 내장.
-- 약점: 범용 터미널이라 AI 세션 오케스트레이션·IPC 협업 없음. 임베더블 .NET 컨트롤 아님. → **렌더 성능 목표(NFR-001)의 상향 레퍼런스**로만 참고.
+- 약점: 범용 터미널이라 AI 세션 오케스트레이션·IPC 협업 없음. 임베더블 .NET 컨트롤 아님. → **렌더 품질의 상향 레퍼런스**로만 참고.
 
 #### [CS-005] Warp
 - URL: warp.dev/agents / US / 크로스 / 유료 티어
@@ -148,13 +148,13 @@
 - URL: github.com/migueldeicaza/XtermSharp / OSS(.NET)[^xterm]
 - 한줄 정의: .NET용 Xterm/VT100 에뮬레이터 **엔진**(프론트/백엔드 agnostic, `Feed(byte[])`로 데이터 주입).
 - 강점: 파서/스크린 버퍼 엔진 성숙, 프론트엔드 교체 가능(FR-003/NFR-018 경계 분리와 정합).
-- 약점: 제공 렌더 프론트엔드가 **Cocoa/Mac·Terminal.Gui(콘솔)뿐 — WPF 렌더러 없음**. 유지보수 활성도 낮음. → 파서 엔진 후보이나 **WPF 셀 렌더는 자체 필요**(BUILD 근거).
+- 약점: 제공 렌더 프론트엔드가 **Cocoa/Mac·Terminal.Gui(콘솔)뿐 — WPF 렌더러 없음**. 유지보수 활성도 낮음. → 공식 WT 렌더러를 임베드하는 채택안(EasyWindowsTerminalControl)이 우세. 미채택.
 
 #### [CS-012] libvt100 / vtparse 계열
 - URL: github.com/taterbase/libvt100 등 / OSS[^libvt100]
 - 한줄 정의: 순수 C# VT100/ANSI **파서 라이브러리**(파싱만, 렌더는 호스트가 담당 — Paul Williams 상태머신 계보).
-- 강점: 파서-렌더 분리 사상이 우리 결정 #6과 정확히 일치, 경량·라이선스 명확(후보).
-- 약점: 커버리지·유지보수·성능 편차 큼(vtnetcore/libvt100/XtermSharp engine 간 실측 필요 → 숙제②). alt-screen/TUI 완전성 미검증.
+- 강점: 순수 파서 라이브러리로 경량·라이선스 명확.
+- 약점: 파서만 제공(렌더·alt-screen은 호스트 자체 구현 필요) → 공식 WT 렌더러를 임베드하는 채택안(EasyWindowsTerminalControl) 대비 부담이 크다. 미채택.
 
 #### [CS-013] Windows Terminal Control (embeddable)
 - URL: devblogs "Building Windows Terminal with WinUI" / github.com/Corillian/WindowsTerminal[^winui][^embed]
@@ -208,16 +208,16 @@
 
 | # | 영역 | 결정 | 근거(경쟁 벤치마크 + 브리프) | 관련 |
 |---|---|---|---|---|
-| B1 | 임베드 터미널 엔진(spawn·렌더·주입) | **INTEGRATE/BUY** (EasyWindowsTerminalControl, MIT) | ★**반전(10 v2)**: runbook 06 GO — **공식 Windows Terminal 렌더러**(Microsoft.Terminal.Control/Wpf)를 WPF에 임베드, 앱-소유·주입은 TermPTY API로 통제. WinUI3 마찰은 그 백엔드만 WPF용으로 뽑아와 회피. 결정 #4/#7 유지 | FR-001·002·014·039 |
-| B2 | VT 시퀀스 파싱 | **엔진 내장**(별도 채택 불필요) | ★반전: 공식 WT 렌더러가 파싱·렌더 일체 제공 → 자체 파서(VtNetCore) 선정 **소멸**(후속숙제② 해소, 10 v2) | FR-003·NFR-018 |
-| B3 | 셀 렌더러 | **엔진 내장**(공식 WT GPU 렌더러) | ★반전: self-build(GlyphRun)는 NO-GO 폴백(MS GUIConsole.ConPTY)으로 강등. 렌더 성능 리스크 대폭 완화(후속숙제③ 해소, 06 GO) | FR-004·005·007 |
+| B1 | 임베드 터미널 엔진(spawn·렌더·주입) | **INTEGRATE/BUY** (EasyWindowsTerminalControl, MIT) | 공식 Windows Terminal 렌더러(Microsoft.Terminal.Control/Wpf)를 WPF에 임베드하는 NuGet 컨트롤. 앱-소유·주입은 TermPTY API로 통제. WinUI3 직접 임베드의 마찰(투명 합성 불가·주입 API 미노출)은 백엔드만 WPF용으로 취해 회피 | FR-001·002·014·039 |
+| B2 | VT 시퀀스 파싱 | **엔진 내장** | 공식 WT 렌더러가 파싱·렌더를 일체 제공 → 자체 파서 채택 불필요 | FR-003·NFR-018 |
+| B3 | 셀 렌더러 | **엔진 내장**(공식 WT GPU 렌더러) | 자체 셀 렌더러 대신 공식 렌더러 신뢰. self-build(MS GUIConsole.ConPTY)는 폴백 | FR-004·005·007 |
 | B4 | IPC 채널·relay·전송 | **REUSE**(skill_ipc_control) | CS군 어디도 세션 간 IPC 없음 = 재사용 자산이 곧 차별. 재구현 금지(NFR-017), GUI 프론트엔드만. 결정 #3 | FR-024·025·027·029 |
 | B5 | 토큰 집계(jsonl) | **BUILD-light**(자체 증분 파서) | ccusage(CS-010)로 jsonl 접근 검증됨 — 로직 참고하되 CLI 종속 회피, 관제탑 내장·증분(NFR-005). 결정 #11 | FR-030·031·032 |
 | B6 | 세션 오케스트레이션 UX(프로파일·다중세션·IPC 협업 뷰) | **BUILD**(차별화 핵심) | Squad/Conductor보다 깊은 프로파일 애그리거트 + 유일한 IPC 협업 뷰. 통제력·차별화 우선 | FR-011·019·022·026·028 |
 | B7 | 프롬프트 자산 편집(~/.claude 트리·에디터) | **BUILD-light** | 경쟁 부재(공백), 범용 파일 트리+에디터라 경량 자체 구현. 경로 안전(NFR-008) | FR-033~036 |
 | B8 | 배포·업데이트 | **BUY/Reuse**(ClickOnce) | 기존 파이프라인 계승, 출시 속도·비용. 결정 #8(브리프 §8) | FR-041·NFR-021 |
 
-요약: **차별화 3축(세션 소유·IPC 협업·관측/자산 내장)은 Build, 파싱·relay·배포 등 범용은 Buy/Reuse.** 브리프의 "지금 ConPTY 자체 제작" 결정은 통제력·앱-소유 요구·기존 .NET 컨트롤 부적합으로 정당화된다. 리스크는 B2(파서 선정)·B3(렌더 성능)에 집중 → 10 기술리서처 PoC로 조기 검증 필요.
+요약: **차별화 3축(세션 소유·IPC 협업·관측/자산 내장)은 Build, 터미널 렌더 엔진·relay·배포 등 범용은 Buy/Reuse.** 앱-소유·주입 통제는 자체 구현하되 파싱·렌더는 공식 WT 렌더러를 임베드한다. 리스크는 엔진 native 배포에 집중 → 10 참조.
 
 ---
 
@@ -228,7 +228,7 @@
 | 차별화 포인트 | 근거(경쟁 공백) | 반영 FR/설계 결정 |
 |---|---|---|
 | D1. **세션 간 IPC 채널 협업** | 전 오케스트레이터가 worktree 격리(세션이 대화 안 함) | FR-024~029 강화 — 채널 대화 뷰(FR-028)를 1급 화면으로. skill_ipc_control 재사용(NFR-017) |
-| D2. **앱-소유 ConPTY + 임의 주입** | Squad는 tmux 위, Conductor는 spawn만. 임의 세션 주입 제어 드묾 | FR-001·014·027 — 입력 파이프를 렌더 ①단계에 조기 확보(주입≠렌더 완성) |
+| D2. **앱-소유 ConPTY + 임의 주입** | Squad는 tmux 위, Conductor는 spawn만. 임의 세션 주입 제어 드묾 | FR-001·014·027 — 입력 경로가 렌더와 독립이라 주입을 처음부터 제어 |
 | D3. **의도별 세션 프로파일(재사용 애그리거트)** | Squad profile picker는 얕음, Conductor는 worktree 중심 | FR-019~023 — 6필드 프로파일 + as(IPC 식별자). 프리셋 즉시 기동 |
 | D4. **Windows 네이티브 관제탑** | Conductor macOS 전용·Vibe 웹·Squad TUI | NFR-019·FR-040 — WPF Shell, 데스크톱 통합 관제 |
 | D5. **토큰 관측 내장** | ccusage는 CLI 별도 | FR-030~032 — 세션↔jsonl 실시간 매핑·세션별 표시(ccusage 미충족 UX) |
@@ -305,6 +305,6 @@
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_competitor_researcher · 깊이: deep · 조사 13개(CS-001~013, 국내 0/해외 13)
 - 입력: `00_meeting_brief.md`(정체성·ConPTY 결정) · `04_requirements.md`(FR/NFR 비교 축, 참조 전용)
-- 관련 문서: [`04_requirements`](./04_requirements.md)(FR 비교 축) · [`10_tech`](./10_tech.md)(VT 파서 선정·렌더 성능·RISK — 숙제②③) · [`12_roadmap`](./12_roadmap.md)(레이어 우선순위)
+- 관련 문서: [`04_requirements`](./04_requirements.md)(FR 비교 축) · [`10_tech`](./10_tech.md)(터미널 엔진·RISK) · [`12_roadmap`](./12_roadmap.md)(레이어 우선순위)
 - 미해결·후속: §7 항목 → `13_followups`로 이관(특히 파서 실측·Warp 협업 깊이·Agent Teams 위협).
 - 비고: 본 문서는 레지스트리 네임스페이스 ID를 발번하지 않는다(CS-###는 문서 로컬 라벨). FR은 참조 전용.

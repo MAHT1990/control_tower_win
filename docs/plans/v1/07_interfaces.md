@@ -12,7 +12,7 @@
 본 문서는 `04`(FR 43/NFR 22)·`05`(FN 53)가 정의한 "무엇을"과 `06`(BS 22/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 단일 pane→탭)를 반영한다.
 
 - **정의하는 것**: 앱 단일 셸의 영역(존) 구성(IA) / 각 화면의 목적·구성요소·상호작용·표시 데이터·연결 FN/FR·진입/이탈(SC) / 모드(UT)별 화면 전이 흐름 / 키보드 중심 UX 원칙·전환 가드.
-- **정의하지 않는 것(경계)**: REST 엔드포인트·DTO 스키마=08 / 엔티티·프로파일 영속 스키마·ERD=09 / VT 파서 선정·렌더 성능 실측·아키텍처 검증=10. 본 문서는 "어떤 정보가 화면에 보이는가"까지만 적고 계약은 넘긴다.
+- **정의하지 않는 것(경계)**: REST 엔드포인트·DTO 스키마=08 / 엔티티·프로파일 영속 스키마·ERD=09 / 터미널 엔진·아키텍처 검증=10. 본 문서는 "어떤 정보가 화면에 보이는가"까지만 적고 계약은 넘긴다.
 - **RBAC 부재 반영(03 계승)**: 단일 파워유저·로컬·인증 없음(제약 C7)이므로 Public/Auth/Admin 화면군이 없다. 화면 분류의 "대상 UT"는 *권한 차단*이 아니라 *운영 모드(hat)의 주 사용 맥락*을 뜻한다. 모든 화면은 원칙상 UT-001(루트)이 접근 가능하며, 표기된 UT는 그 화면을 주로 행사하는 모드다.
 - **06 핵심 요구의 화면화**: (a) **활성 세션 명시**·(b) **주입 대상 확인 게이트**·(c) **상태 배지**·(d) **경로 경계 시각화**를 SC 설계의 1급 제약으로 삼는다(03 §4-3 주의 분산 방지, BS-004/005/011/014).
 
@@ -202,9 +202,9 @@
 - 분류/존: Shell/System · O(모달/전체 오버레이) · 대상 UT-004
 - FR/FN: FR-042·038 / FN-SYS-03·SEC-02 (관련 NFR-006 포트 0)
 - 목적: 핵심 경로(~/.claude·channels 루트)·기본 프로파일·렌더 단계·정책 표기를 관리·영속.
-- 핵심 구성요소: 경로 입력(검증 배지) / 기본 프로파일 선택 / 렌더 단계 토글(1|2) / 보안 정책 표기(포트 0·로컬 전용, read-only) / 저장·취소.
-- 표시 데이터: {claudeRoot}, {channelsRoot}, {defaultProfile}, {renderStage}, {listeningPorts:0 고정 표기}.
-- 상호작용: 경로 편집→유효성 검사(FN-PRF-02 계열 경로 검사), 렌더 단계 변경(파서-렌더 분리로 무중단, NFR-013), 저장→영속(원자적).
+- 핵심 구성요소: 경로 입력(검증 배지) / 기본 프로파일 선택 / 보안 정책 표기(포트 0·로컬 전용, read-only) / 저장·취소.
+- 표시 데이터: {claudeRoot}, {channelsRoot}, {defaultProfile}, {listeningPorts:0 고정 표기}.
+- 상호작용: 경로 편집→유효성 검사(FN-PRF-02 계열 경로 검사), 설정 변경→저장→영속(원자적).
 - 상태: 로딩=현재 설정 fetch / 빈=최초 실행 시 기본값 프리필 / 에러=경로 무효→인라인 "path not found", 저장 실패→토스트.
 - 진입: 상단 gear / Flow E 확장 / 이탈: 저장·취소→SC-01.
 ```
@@ -327,12 +327,12 @@
 #### [SC-08] 터미널 뷰 (Terminal View)
 - 분류/존: Main · T · 대상 UT-003(주)·UT-005(read)
 - FR/FN: FR-002·003·004·005·007·009 / FN-TRM-03·04·05·06·07·09·10·12 (BS-007·008·009, 엣지 E4·E13)
-- 목적: 파서 스크린 버퍼를 WPF 셀 그리드로 실시간 렌더(렌더①: 색·커서·스크롤백 / 렌더②: alt-screen·claude TUI). 포커스 타이핑·리사이즈·스크롤백 조회를 제공하는 substrate 화면.
+- 목적: 세션 출력을 공식 WT 렌더러로 실시간 렌더(색·커서·스크롤백·alt-screen/claude TUI). 포커스 타이핑·리사이즈·스크롤백 조회를 제공하는 substrate 화면.
 - 핵심 구성요소: 셀 그리드(전경/배경색·커서) / 스크롤백 뷰포트+스크롤바 / alt-screen 모드 전환(TUI) / 입력 포커스 링 / 리사이즈 그립(PTY 재조정).
 - 표시 데이터: {screenBuffer cells}, {cursor pos}, {scrollback offset}, {alt-screen active?}, {cols×rows}.
 - 상호작용: 포커스 시 키 입력→VT 인코딩→입력 파이프 write(FN-TRM-12, 특수키 Ctrl+C/방향키/Enter) / 휠·스크롤바 스크롤백 조회(신규 출력 시 자동 하단 복귀) / 뷰 리사이즈→ResizePseudoConsole 재래핑(디바운스) / 드래그 선택→SC-09.
 - 상태: 로딩=세션 starting 시 "connecting pty…" / 빈=출력 없음(프롬프트 대기) / 에러=파이프 오류→세션 error 표시+"session error, see diagnostics"(SC-06 링크).
-- **★ v2 정합(10 v2 RISK-002 airspace)**: SC-08은 EasyWindowsTerminalControl(native HwndHost)이라 **터미널 위 WPF 오버레이 불가**. 세션 error 표시·경고 배너·출력 로그는 **터미널 존 밖 별도 패널**(하단/우측), 위험 게이트(SC-13)는 **별도 모달**로 배치. 선택 컨텍스트 메뉴(SC-09)만 터미널 위 허용. claude TUI는 공식 WT 렌더러가 06 GO로 정상 렌더 → "깨짐 경고 배너"는 사실상 불필요.
+- **airspace 제약**: SC-08은 EasyWindowsTerminalControl(native HwndHost)이라 터미널 위에 WPF 요소를 겹칠 수 없다. 세션 error 표시·출력 로그는 터미널 존 밖 별도 패널(하단/우측), 위험 게이트(SC-13)는 별도 모달로 배치한다. 선택 컨텍스트 메뉴(SC-09)만 터미널 위 허용.
 - 진입: 탭 선택(SC-07) / 이탈: 선택→SC-09, 명령→SC-12, 크래시→SC-11 배지/SC-06.
 ```
 +-- TERMINAL VIEW  SC-08  (as: tower2 [>]) --------+^| <- scrollbar
@@ -344,7 +344,7 @@
 | (render stage 2: alt-screen)   cols80 x rows24   |
 +--------------------------------------------------+
 ```
-캡션: 렌더①(셀·커서·스크롤백)에서 주입·제어가 즉시 가능, 렌더②(alt-screen)에서 claude TUI 관찰 품질 확보(C10). 대량 출력은 diff 렌더로 프레임 유지 목표(NFR-001, 10 실측). 스크롤 중 신규 출력 도착 시 자동 하단 복귀.
+캡션: 색·커서·스크롤백·alt-screen(claude TUI)을 엔진이 렌더하며 주입·제어는 렌더와 독립으로 가용(C10). 대량 출력도 엔진 GPU 렌더러가 처리(NFR-001). 스크롤 중 신규 출력 도착 시 자동 하단 복귀.
 
 #### [SC-09] 선택 컨텍스트 메뉴 (Selection Menu)
 - 분류/존: Sub · T·O · 대상 UT-003
@@ -702,7 +702,7 @@ flowchart TD
  [scroll wheel / resize] -> [SC-08 scrollback / ResizePTY rewrap]
                                                         -> [SC-11 close/restart action]
 ```
-캡션: 탭 선택(활성 세션 명시)→포커스 타이핑(특수키 VT 변환)→선택·복사(논리라인)→붙여넣기 주입→스크롤백·리사이즈→종료/재시작. 이탈: 렌더② 미완 TUI 깨짐(관찰만 대기)·대량 출력 프레임 드랍(NFR-001 실측 의존).
+캡션: 탭 선택(활성 세션 명시)→포커스 타이핑(특수키 VT 변환)→선택·복사(논리라인)→붙여넣기 주입→스크롤백·리사이즈→종료/재시작. 이탈: 초기 세팅 오버헤드·pane 미지원(확장 제약).
 
 ### 4-4. Flow D — 관측→개입 전환 (JM-004 / UT-005→003/002)
 
@@ -843,4 +843,4 @@ flowchart TD
 - 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 43/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 53·화면 후보) · `06_behaviors.md`(BS 22/JM 5 접점) · `00_meeting_brief.md`(WPF 단일 셸·Feature×Layer·단일 pane→탭) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
 - 발번 ID: SC-01~22 (FR/FN/UT/BS·카테고리는 참조만, 재번호 없음)
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md)(추적성 매트릭스 SC 열 완성 대상) · [`06_behaviors`](./06_behaviors.md)(접점→SC 확정) · [`09_database`](./09_database.md)(SC 표시 데이터→ENT)
-- 미해결·후속: 채널 1:1 매핑(④·SC-16)·위험 가드 정책 범위(⑧·SC-13)·프롬프트 편집 v1 범위(⑤·SC-21·22)·web_monitor 흡수 vs 병존(⑥·SC-17)·렌더② 마일스톤 시점(⑦·SC-08)·pane 분할(FR-008·SC-10 Could)·렌더 성능 실측(③·SC-08) → `13_followups` 연계.
+- 미해결·후속: 채널 1:1 매핑(④·SC-16)·위험 가드 정책 범위(⑧·SC-13)·프롬프트 편집 v1 범위(⑤·SC-21·22)·web_monitor 흡수 vs 병존(⑥·SC-17)·pane 분할(FR-008·SC-10 Could) → `13_followups` 연계.

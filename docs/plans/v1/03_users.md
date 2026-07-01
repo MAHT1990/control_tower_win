@@ -111,7 +111,7 @@
 - **권한 집합(exercised)**: `{ TRM: read(렌더)·type(입력 포커스)·copy·리사이즈·스크롤백·탭전환, SES: inject(단일)·상태 read·kill, OBS: read(해당 세션 토큰) }`.
 - **포함관계**: `⊆ UT-001`.
 - **대표 FR(참조)**: FR-004·006·009·010·014·015·032.
-- **비고**: claude는 alt-screen TUI라 이 모드의 완전 관찰 품질은 렌더 ②(FR-005) 완료 후 확보(제약 C10). 단 주입·제어는 렌더 ①에서 이미 가능.
+- **비고**: claude는 alt-screen TUI이며 공식 WT 렌더러가 기본 렌더하므로 관찰·주입·제어가 모두 가용(제약 C10).
 
 ### 2-4. [UT-004] 프롬프트·프로파일 자산 관리자 (Asset Curator, authoring-time mode)
 
