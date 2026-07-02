@@ -6,6 +6,21 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseRidGraph>true</UseRidGraph>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="EasyWindowsTerminalControl" Version="1.0.36" />
+    
+    <!-- 전이 의존을 직접 참조로 고정 + 경로 프로퍼티 생성(native 자산 복사 경로 확보) -->
+    <PackageReference Include="CI.Microsoft.Windows.Console.ConPTY" Version="1.22.250314001" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <!-- ConPTY native 자산을 출력으로 복사 (패키지가 .NET 앱용 복사 타겟 미제공).
+       conpty.dll = 가짜 콘솔(P/Invoke 대상), OpenConsole.exe = PTY 호스트 -->
+  <ItemGroup>
+    <None Include="$(PkgCI_Microsoft_Windows_Console_ConPTY)\runtimes\win10-x64\native\conpty.dll" Link="conpty.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+    <None Include="$(PkgCI_Microsoft_Windows_Console_ConPTY)\build\native\runtimes\x64\OpenConsole.exe" Link="OpenConsole.exe" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+  </ItemGroup>
 </Project>

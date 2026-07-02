@@ -1,0 +1,6 @@
+<UserControl x:Class="ControlTowerWin.Features.EmbeddedTerminal.Views.TerminalView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:term="clr-namespace:EasyWindowsTerminalControl;assembly=EasyWindowsTerminalControl">
+    <term:EasyTerminalControl StartupCommandLine="powershell.exe"/>
+</UserControl>
