@@ -1,6 +1,6 @@
 # 07. 인터페이스 설계 (IA · 화면 · 흐름 · UX)
 
-> 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 22 / FR 커버리지 43/43 (100%) · 고아 화면 0
+> 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 22 / FR 커버리지 45/45 (100%) · 고아 화면 0
 > 본 문서는 Control Tower 단일 WPF 셸의 정보구조(IA)·화면 명세(SC)·사용자 흐름·UX 원칙을 정의한다. 08(REST/API)은 서버 부재로 제외하며, 데이터 형상=09·in-proc 계약=10 소관이다. 화면이 필요로 하는 데이터는 "무엇이 보인다" 수준으로만 기술한다.
 
 ---
@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04`(FR 43/NFR 22)·`05`(FN 53)가 정의한 "무엇을"과 `06`(BS 22/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 단일 pane→탭)를 반영한다.
+본 문서는 `04`(FR 45/NFR 22)·`05`(FN 55)가 정의한 "무엇을"과 `06`(BS 22/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 탭 컨테이너 + 탭 내 pane 분할)를 반영한다.
 
 - **정의하는 것**: 앱 단일 셸의 영역(존) 구성(IA) / 각 화면의 목적·구성요소·상호작용·표시 데이터·연결 FN/FR·진입/이탈(SC) / 모드(UT)별 화면 전이 흐름 / 키보드 중심 UX 원칙·전환 가드.
 - **정의하지 않는 것(경계)**: 08(REST 엔드포인트·DTO)은 서버 부재로 제외 / 데이터 형상(엔티티·프로파일 영속 스키마·ERD)=09 / in-proc 계약·터미널 엔진·아키텍처 검증=10. 본 문서는 "어떤 정보가 화면에 보이는가"까지만 적고 계약은 넘긴다.
@@ -44,10 +44,10 @@
 | SC-04 | 종료 확인 (Exit / Cleanup Confirm) | Shell/System | O | UT-001 | FR-001·015·039 | FN-TRM-01·02·SES-05·SEC-03 |
 | SC-05 | 업데이트 알림 (Update Notice) | Shell/System | O | UT-001 | FR-041 | FN-SYS-02 |
 | SC-06 | 진단 로그 뷰 (Diagnostics Log) | Shell/System | O | UT-005 | FR-016(NFR-022) | FN-SYS-05·SES-08 |
-| SC-07 | 터미널 탭 바 (Terminal Tab Bar) | Main | T | UT-003·002 | FR-006 | FN-TRM-08 |
-| SC-08 | 터미널 뷰 (Terminal View) | Main | T | UT-003·005 | FR-002·003·004·005·007·009 | FN-TRM-03·04·05·06·07·09·10·12 |
+| SC-07 | 터미널 탭·세션 트리 (Tabs & Tree) | Main | T | UT-003·002 | FR-006·045 | FN-TRM-08·15 |
+| SC-08 | 터미널 뷰 (Terminal View) | Main | T | UT-003·005 | FR-002·003·004·005·007·009·045 | FN-TRM-03·04·05·06·07·09·10·12·15 |
 | SC-09 | 선택 컨텍스트 메뉴 (Selection Menu) | Sub | T·O | UT-003 | FR-010 | FN-TRM-13 |
-| SC-10 | pane 분할 레이아웃 (Pane Split) [Could] | Sub | T | UT-003 | FR-008 | FN-TRM-11 |
+| SC-10 | pane 분할 레이아웃 (Pane Split) [Should] | Sub | T | UT-003 | FR-008·044 | FN-TRM-11·14 |
 | SC-11 | 세션 목록 패널 (Session Fleet List) | Main | L | UT-002·003·005 | FR-016·017·018·015·039·032 | FN-SES-07·08·09·10·05·06·OBS-03·SEC-03 |
 | SC-12 | 커맨드 주입 바 (Command Bar) | Sub | T | UT-002·003 | FR-014 | FN-SES-04 |
 | SC-13 | 위험 커맨드 확인 게이트 (Risk Confirm Gate) | Sub | O | UT-002 | FR-037 | FN-SEC-01 |
@@ -306,13 +306,13 @@
 
 ### 3-2. Terminal 존 (T)
 
-#### [SC-07] 터미널 탭 바 (Terminal Tab Bar)
+#### [SC-07] 터미널 탭·세션 트리 (Tabs & Tree)
 - 분류/존: Main · T · 대상 UT-003·002
-- FR/FN: FR-006 / FN-TRM-08 (BS-001·007·010)
-- 목적: 여러 세션을 탭으로 담아 전환(단일 pane→탭, C8). **활성 탭 = 활성 세션 명시**의 1차 UI.
-- 핵심 구성요소: 탭 칩(as 라벨 + 상태 배지) / 활성 탭 강조(색·굵기·언더라인) / 탭 닫기(×, 세션 종료 연동) / 새 탭(+, SC-14 picker).
-- 표시 데이터: 탭별 {as, 상태[>][*][x][!], claude autorun 아이콘}, {activeTabIndex}.
-- 상호작용: 클릭/Ctrl+Tab 전환→해당 세션 화면·포커스 활성·세션 목록 동기(FN-SES-09), 탭 × →SC-04 유형 종료 연동(FN-SES-05), 드래그 재정렬.
+- FR/FN: FR-006·045 / FN-TRM-08·15 (BS-001·007·010)
+- 목적: 탭(부모)→터미널(자식, PID) 트리로 세션을 담아 전환. 탭 선택 시 그 탭의 터미널이 우측 pane으로 표시. **탭·터미널 선택 = 포커스 명시**의 1차 UI.
+- 핵심 구성요소: 탭 노드(제목) / 터미널 자식 노드(as·PID·상태 배지) / 포커스 항목 강조(pane 테두리) / 항목 닫기(세션 종료 연동) / 새 탭·새 터미널(SC-14 picker) / Ctrl+1…N 전환 단축키(FN-TRM-15).
+- 표시 데이터: 탭별 {title}, 터미널별 {as, pid, 상태[>][*][x][!], claude autorun 아이콘}, {focusedNode}.
+- 상호작용: 클릭/Ctrl+숫자 전환→해당 pane 포커스 강조·세션 목록 동기(FN-SES-09), 항목 닫기 →SC-04 유형 종료 연동(FN-SES-05).
 - 상태: 로딩=탭 생성 중 배지 [*] / 빈=탭 0→중앙 "no session" CTA(SC-01 빈 상태) / 에러=세션 error 시 탭 배지 [!]+툴팁.
 - 진입: 세션 spawn(Flow A/C) / 이탈: 탭 선택→SC-08, 닫기→종료.
 ```
@@ -363,22 +363,22 @@
 ```
 캡션: 스크롤 중 선택 소실 방지 위해 뷰포트 고정 후 재선택 권장. 붙여넣기 주입은 위험 패턴 시 SC-13 게이트 경유.
 
-#### [SC-10] pane 분할 레이아웃 (Pane Split) [Could · 후속]
+#### [SC-10] pane 분할 레이아웃 (Pane Split) [Should]
 - 분류/존: Sub · T · 대상 UT-003
-- FR/FN: FR-008 / FN-TRM-11 (후속 마일스톤, C8 · BS-009 확장)
-- 목적: 한 탭 내 화면을 수평/수직 pane으로 분할해 2개 이상 세션 동시 표시. **v1 후속(Could)**, 화면 자리만 예약.
-- 핵심 구성요소: 분할 핸들 / pane별 세션 바인딩 / 포커스 라우팅(활성 pane 강조).
+- FR/FN: FR-008·044 / FN-TRM-11·14 (C8 · BS-009 확장)
+- 목적: 한 탭 내 화면을 pane으로 분할해 그 탭의 2개 이상 터미널 동시 표시. v1은 자동 타일(UniformGrid) 분할 + pane 크기 조정(FR-044).
+- 핵심 구성요소: 자동 타일 배치 / 분할 핸들(크기 조정 FN-TRM-14) / pane별 세션 바인딩 / 포커스 라우팅(활성 pane 강조).
 - 표시 데이터: {paneLayout}, {focusedPane}.
-- 상호작용: 수평/수직 분할·pane 포커스 전환.
-- 상태: v1=미지원 안내("pane split — coming later") / 후속=정상 분할.
-- 진입: 탭 컨텍스트(후속) / 이탈: 분할 해제→SC-08.
+- 상호작용: 자동 타일·핸들 드래그 크기조정·pane 포커스 전환.
+- 상태: v1=자동 타일 분할 지원(수동 핸들 크기조정) / 정상 분할.
+- 진입: 컨테이너 다중 세션 / 이탈: 세션 단일화→SC-08.
 ```
-+---- TAB: proj ----+
-| PANE A  | PANE B  |   <- 후속(Could): 각 pane = 개별 세션
++--- SPLIT: sessions ---+
+| PANE A  | PANE B  |   <- v1: 각 pane = 개별 라이브 세션
 |  SC-08  |  SC-08  |
 +---------+---------+
 ```
-캡션: v1 범위 밖(Could). 후속 마일스톤 자리 예약으로 IA 연속성 확보.
+캡션: v1 지원(Should). 자동 타일 분할로 실체화, 수동 핸들 크기조정은 FR-044.
 
 #### [SC-11] 세션 목록 패널 (Session Fleet List)
 - 분류/존: Main · L · 대상 UT-002·003·005(관측 read)
@@ -821,7 +821,7 @@ flowchart TD
 - **존 분포**: T(터미널) 5 · L(내비게이터) 3 · R(오케스트레이션) 4 · S(셸/시스템) 1 · O(오버레이) 9(존 겸속).
 - **8 카테고리 화면 커버**: TRM(SC-07~10) · SES(SC-11·12) · PRF(SC-14·15) · IPC(SC-16~19) · OBS(SC-20) · AST(SC-21·22) · SEC(SC-13·04·21·22 횡단) · SYS(SC-01~06). → 누락 카테고리 0.
 
-### 6-2. FR 커버리지 (43/43 = 100%) ★불변식
+### 6-2. FR 커버리지 (45/45 = 100%) ★불변식
 
 | FR | SC | FR | SC | FR | SC |
 |---|---|---|---|---|---|
@@ -838,17 +838,17 @@ flowchart TD
 | FR-011 | 14 | FR-026 | 16 | FR-041 | 05 |
 | FR-012 | 14·15 | FR-027 | 19 | FR-042 | 02 |
 | FR-013 | 15·14 | FR-028 | 17 | FR-043 | 03 |
-| FR-014 | 12 | FR-029 | 16 | | |
-| FR-015 | 11·07·04 | FR-030 | 20 | | |
+| FR-014 | 12 | FR-029 | 16 | FR-044 | 10 |
+| FR-015 | 11·07·04 | FR-030 | 20 | FR-045 | 07·08 |
 
-> **미커버 FR = 0** (43/43). NFR 중 화면 실현분: NFR-006/007/008(SC-02·13·21·22)·NFR-009(SC-06/08 격리)·NFR-010(SC-16)·NFR-011(SC-15·22)·NFR-022(SC-06). 나머지 품질 NFR은 10(tech) 검증.
+> **미커버 FR = 0** (45/45). NFR 중 화면 실현분: NFR-006/007/008(SC-02·13·21·22)·NFR-009(SC-06/08 격리)·NFR-010(SC-16)·NFR-011(SC-15·22)·NFR-022(SC-06). 나머지 품질 NFR은 10(tech) 검증.
 
 ### 6-3. 자체 검증 게이트
 | 게이트 | 결과 |
 |---|---|
-| FR 커버리지(미커버 FR=0) | ✅ 43/43 |
+| FR 커버리지(미커버 FR=0) | ✅ 45/45 |
 | 고아 화면 0(모든 SC ≥1 흐름/IA 등장) | ✅ 22/22 (Flow A~F + IA §2 전수 등장) |
-| 참조 무결(인용 FR/FN/UT/BS가 레지스트리 존재) | ✅ FR-001~043·FN 53·UT-001~005·BS-001~022 인용, 재번호 0 |
+| 참조 무결(인용 FR/FN/UT/BS가 레지스트리 존재) | ✅ FR-001~045·FN 55·UT-001~005·BS-001~022 인용, 재번호 0 |
 | SC 네임스페이스 유일 | ✅ SC-01~22 중복 0 |
 | 06 핵심 요구 반영 | ✅ 활성 세션 명시(SC-07·12·13)·주입 게이트(SC-13)·상태 배지(SC-07·11·16)·경로 경계(SC-21·22) |
 
@@ -858,7 +858,7 @@ flowchart TD
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_interface_designer · 깊이: deep
-- 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 43/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 53·화면 후보) · `06_behaviors.md`(BS 22/JM 5 접점) · `00_meeting_brief.md`(WPF 단일 셸·Feature×Layer·단일 pane→탭) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
+- 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 45/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 55·화면 후보) · `06_behaviors.md`(BS 22/JM 5 접점) · `00_meeting_brief.md`(WPF 단일 셸·Feature×Layer·탭 컨테이너+탭 내 pane 분할) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
 - 발번 ID: SC-01~22 (FR/FN/UT/BS·카테고리는 참조만, 재번호 없음)
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md)(추적성 매트릭스 SC 열 완성 대상) · [`06_behaviors`](./06_behaviors.md)(접점→SC 확정) · [`09_database`](./09_database.md)(SC 표시 데이터→ENT)
 - 미해결·후속: 채널 1:1 매핑(④·SC-16)·위험 가드 정책 범위(⑧·SC-13)·프롬프트 편집 v1 범위(⑤·SC-21·22)·web_monitor 흡수 vs 병존(⑥·SC-17)·pane 분할(FR-008·SC-10 Could) → `13_followups` 연계.

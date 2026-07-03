@@ -1,4 +1,4 @@
-# Runbook 06b — 임베드 터미널: 명령 주입 + 출력 가로채기 (블루프린트)
+# Runbook 08 — 임베드 터미널: 명령 주입 + 출력 가로채기 (블루프린트)
 
 > **상태**: 큰 틀(블루프린트)만. 상세 구현 단계는 추후 확장.
 > **방식**: Runbook 06과 동일 — **직접 구현·검증(PoC) 후 검증된 절차를 런북으로 역산출**한다
@@ -34,7 +34,7 @@ Runbook 06에서 만든 임베드 터미널(앱 안 pwsh, 사람 타이핑 가�
                        │                                   │
                        └◀── 출력 가로채기(Intercept) ◀──────┘
                             ├─ 화면 렌더(기존)
-                            └─ 앱 수집(로깅/파싱)  ← 06b 신규
+                            └─ 앱 수집(로깅/파싱)  ← 07 신규
 ```
 
 ### 사용할 API (06 README에서 확인된 표면)
@@ -96,14 +96,14 @@ Features/EmbeddedTerminal/
 ## 다음 단계
 
 - 본 블루프린트를 **PoC → 단계별 구현 런북**으로 확장 (06과 동일 방식).
-- **07**: 임베드 세션 **종료/수명** 관리(`RestartTerm`/`DisconnectConPTYTerm`), 별건으로 Runbook 05
+- **09**: 임베드 세션 **종료/수명** 관리(`RestartTerm`/`DisconnectConPTYTerm`), 별건으로 Runbook 05
   컨텍스트 메뉴 `종료`(외부 프로세스 Kill) 연결.
 
 ---
 
 ## 참고
 
-- [Runbook 06 — 임베드 터미널 (PoC + 최소 임베드)](./06_wpf_send_command_to_powershell.md)
+- [Runbook 06 — 임베드 터미널 (PoC + 최소 임베드)](./06_wpf_embedded_terminal.md)
 - [interfaces.md — 계약 전용 레이어](../guides/convention/interfaces.md) ·
   [services.md](../guides/convention/services.md) · [viewmodels.md](../guides/convention/viewmodels.md)
 - [EasyWindowsTerminalControl (GitHub)](https://github.com/mitchcapper/EasyWindowsTerminalControl) — TermPTY / Intercept API

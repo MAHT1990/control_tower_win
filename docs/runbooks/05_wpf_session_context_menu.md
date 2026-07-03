@@ -155,6 +155,6 @@ dotnet build ControlTowerWin.csproj
 ## 다음 단계
 
 - **런북 06**: 이 메뉴의 `명령 실행`에 동작을 연결한다. `Features/SendCommand/` 모듈을 신설하고
-  (방법 A/B/C 중 택1, [06 런북](./06_wpf_send_command_to_powershell.md) 참조), `PlacementTarget`으로
+  (방법 A/B/C 중 택1, [06 런북](./06_wpf_embedded_terminal.md) 참조), `PlacementTarget`으로
   우클릭한 세션의 PID를 집어 커맨드를 주입한다.
 - **런북 07**: `종료` 항목에 대상 프로세스 Kill 동작을 연결한다.

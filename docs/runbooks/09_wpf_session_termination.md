@@ -1,4 +1,4 @@
-# Runbook 07 — 세션 종료 / 수명 관리 (블루프린트)
+# Runbook 09 — 세션 종료 / 수명 관리 (블루프린트)
 
 > **상태**: 큰 틀(블루프린트)만. 상세 구현 단계는 추후 확장.
 > **방식**: Runbook 06과 동일 — **직접 구현·검증(PoC) 후 검증된 절차를 런북으로 역산출**한다
@@ -8,14 +8,14 @@
 
 ## 목표
 
-"세션 종료"는 이 프로젝트에서 **두 가지 다른 대상**을 가리킨다. 07은 둘 다 다룬다.
+"세션 종료"는 이 프로젝트에서 **두 가지 다른 대상**을 가리킨다. 09은 둘 다 다룬다.
 
 - **(A) 임베드 터미널 세션 수명** — 앱이 직접 spawn한 EmbeddedTerminal(ConPTY) 세션의 종료·재시작·정리.
 - **(B) 외부 세션 종료** — SessionMonitor 목록의 외부 `pwsh` 프로세스를 우클릭 `종료`로 Kill.
   Runbook 05에서 만든 컨텍스트 메뉴의 `종료`(현재 `IsEnabled="False"`) placeholder를 **활성화**한다.
 
 > **경계 재확인**: A는 *앱이 부모인* 임베드 세션(입출력 제어 가능), B는 *남의 프로세스*(Kill만 가능).
-> 둘은 별개 Feature이며 서로 직접 참조하지 않는다([06 개념](./06_wpf_send_command_to_powershell.md) 계승).
+> 둘은 별개 Feature이며 서로 직접 참조하지 않는다([06 개념](./06_wpf_embedded_terminal.md) 계승).
 
 ---
 
@@ -73,7 +73,7 @@ Features/SessionMonitor/
 ### (A) EmbeddedTerminal — 세션 수명
 ```
 Features/EmbeddedTerminal/
-├── Interfaces/   ITerminalSession.cs       # (06b에서 도입) Close/Restart 계약 추가
+├── Interfaces/   ITerminalSession.cs       # (08에서 도입) Close/Restart 계약 추가
 ├── ViewModels/   TerminalViewModel.cs       # CloseCommand / RestartCommand 노출
 └── Views/        TerminalView.xaml(.cs)     # 창 종료(Unloaded/Closing) 시 정리 훅
 ```
@@ -115,8 +115,8 @@ Features/EmbeddedTerminal/
 ## 참고
 
 - [Runbook 05 — 우클릭 컨텍스트 메뉴(껍데기)](./05_wpf_session_context_menu.md) — `종료` placeholder·PlacementTarget 예고
-- [Runbook 06 — 임베드 터미널](./06_wpf_send_command_to_powershell.md) ·
-  [Runbook 06b — 명령 주입·출력 가로채기](./06b_wpf_command_injection_output_capture.md)
+- [Runbook 06 — 임베드 터미널](./06_wpf_embedded_terminal.md) ·
+  [Runbook 08 — 명령 주입·출력 가로채기](./08_wpf_command_injection_output_capture.md)
 - [services.md — ProcessTracker / GC 방지 강한 참조](../guides/convention/services.md) ·
   [viewmodels.md](../guides/convention/viewmodels.md) · [interfaces.md](../guides/convention/interfaces.md)
 - [EasyWindowsTerminalControl (GitHub)](https://github.com/mitchcapper/EasyWindowsTerminalControl) — RestartTerm / DisconnectConPTYTerm

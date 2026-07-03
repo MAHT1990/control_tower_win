@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `03_users.md`의 사용자 유형(UT-001~005·P-001)과 `05_functions.md`의 기능(FN 53, 소급 FR 43)을 **행동의 시간 흐름**으로 엮어, 누가·언제·무엇을·어떤 순서로 하는지를 행동 시나리오(BS)와 Journey Map(JM)으로 정형화한다.
+본 문서는 `03_users.md`의 사용자 유형(UT-001~005·P-001)과 `05_functions.md`의 기능(FN 55, 소급 FR 45)을 **행동의 시간 흐름**으로 엮어, 누가·언제·무엇을·어떤 순서로 하는지를 행동 시나리오(BS)와 Journey Map(JM)으로 정형화한다.
 
 - **정의하는 것**: UT가 FN/FR을 소비하는 트리거→행동→성공/이탈 흐름(BS) / 모드 전환·다-액터 협업을 관통하는 대표 여정(JM) / 행동 패턴·엣지 케이스.
 - **발번 원칙**: `BS-###`·`JM-###`만 신규 발번한다. UT/P(03)·FN(05)·FR/NFR(04)·카테고리는 **참조 전용**(재번호 금지). 화면(SC)은 07에서 확정될 **후보**로만 표기한다.
@@ -818,7 +818,7 @@
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_behavior_designer · 깊이: deep
-- 입력: `03_users.md`(UT-001~005·P-001·모드 전환 루프·다-액터 §4) · `04_requirements.md`(FR 43/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 53·추적성) · `00_meeting_brief.md`(제품 맥락) · 규약(plan_doc_skeleton·plan_id_system)
+- 입력: `03_users.md`(UT-001~005·P-001·모드 전환 루프·다-액터 §4) · `04_requirements.md`(FR 45/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 55·추적성) · `00_meeting_brief.md`(제품 맥락) · 규약(plan_doc_skeleton·plan_id_system)
 - 발번 ID: BS-001~022 · JM-001~005 (UT/P·FN·FR/NFR·카테고리는 참조만, 재번호 없음)
 - 관련 문서: [`03_users`](./03_users.md) · [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md) · [`07_interfaces`](./07_interfaces.md)(BS/JM 접점→SC 확정) · [`11_test`](./11_test.md)(BS 흐름→테스트 시나리오)
 - 미해결·후속: 채널 1:1 매핑(④)·위험 가드 정책(⑧)이 BS-002/005의 이탈 지점과 직결 → `13_followups` 연계. 터미널 렌더·alt-screen/claude TUI·VT 파싱은 임베드 터미널 엔진이 기본 제공하여 별도 이탈/숙제 요인이 아니다. pane 분할(FR-008)은 확장 접점으로만 표기(07에서 SC 확정)하고, ClickOnce 배포·업데이트(FR-041)는 배포 인프라로 행동 시나리오 비대상이다(설계/배포 층).
