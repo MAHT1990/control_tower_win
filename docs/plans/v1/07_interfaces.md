@@ -1,6 +1,6 @@
 # 07. 인터페이스 설계 (IA · 화면 · 흐름 · UX)
 
-> 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 22 / FR 커버리지 45/45 (100%) · 고아 화면 0
+> 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 24 / FR 커버리지 47/47 (100%) · 고아 화면 0
 > 본 문서는 Control Tower 단일 WPF 셸의 정보구조(IA)·화면 명세(SC)·사용자 흐름·UX 원칙을 정의한다. 08(REST/API)은 서버 부재로 제외하며, 데이터 형상=09·in-proc 계약=10 소관이다. 화면이 필요로 하는 데이터는 "무엇이 보인다" 수준으로만 기술한다.
 
 ---
@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04`(FR 45/NFR 22)·`05`(FN 55)가 정의한 "무엇을"과 `06`(BS 22/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 탭 컨테이너 + 탭 내 pane 분할)를 반영한다.
+본 문서는 `04`(FR 47/NFR 22)·`05`(FN 57)가 정의한 "무엇을"과 `06`(BS 24/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 탭 컨테이너 + 탭 내 pane 분할)를 반영한다.
 
 - **정의하는 것**: 앱 단일 셸의 영역(존) 구성(IA) / 각 화면의 목적·구성요소·상호작용·표시 데이터·연결 FN/FR·진입/이탈(SC) / 모드(UT)별 화면 전이 흐름 / 키보드 중심 UX 원칙·전환 가드.
 - **정의하지 않는 것(경계)**: 08(REST 엔드포인트·DTO)은 서버 부재로 제외 / 데이터 형상(엔티티·프로파일 영속 스키마·ERD)=09 / in-proc 계약·터미널 엔진·아키텍처 검증=10. 본 문서는 "어떤 정보가 화면에 보이는가"까지만 적고 계약은 넘긴다.
@@ -60,8 +60,10 @@
 | SC-20 | 토큰 대시보드 (Token Dashboard) | Main | R | UT-005·002 | FR-030·031·032 | FN-OBS-01·02·03 |
 | SC-21 | 자산 트리 패널 (Asset Tree) | Main | L | UT-004 | FR-033·036 | FN-AST-01·04·SEC-04 |
 | SC-22 | 자산 에디터 (Asset Editor) | Main | T | UT-004 | FR-034·035 | FN-AST-02·03·SEC-04 |
+| SC-23 | 세션 액션 컨텍스트 메뉴 (Session Action Menu) | Sub | T·O | UT-002·003 | FR-014·015·046·018 | FN-SES-04·05·06·10·TRM-16 |
+| SC-24 | 출력 캡처 버퍼 (Capture Buffer) | Main | R | UT-002·003 | FR-047 | FN-SES-11 |
 
-> 분포: Shell/System 6 · Main 10 · Sub 6 = **22 화면**. 존: T 5 · L 3 · R 4 · S 1 · O 9(오버레이는 존 겸속). Public/Auth/Admin 0(C7).
+> 분포: Shell/System 6 · Main 11 · Sub 7 = **24 화면**. 존: T 5 · L 3 · R 5 · S 1 · O 10(오버레이는 존 겸속). Public/Auth/Admin 0(C7). (v1.1 델타: SC-23 세션 액션 메뉴 · SC-24 캡처 버퍼)
 
 ### 1-2. IA 조망 + 사용자 흐름 개요
 
@@ -119,11 +121,13 @@
  |     +-- CHANNELS     SC-16   watch/members/mapping/stale
  |     +-- CONVERSATION SC-17 + SEND BAR SC-18
  |     +-- TOKENS       SC-20   fleet token dashboard
+ |     +-- CAPTURE BUF  SC-24   A출력->편집->대상 주입
  |
  +-- OVERLAYS / DIALOGS (O)
        +-- SC-03 restore  · SC-04 exit  · SC-05 update
        +-- SC-13 risk gate · SC-15 profile editor · SC-19 skill inject
        +-- SC-02 settings  · SC-06 diagnostics
+       +-- SC-23 session-action menu (tree/pane right-click)
 ```
 
 ### 2-2. 존(Zone) 다이어그램 — 관제탑 레이아웃
@@ -643,6 +647,48 @@
 ```
 캡션: 앱 내 편집 완결이 UT-004 핵심 가치(별도 에디터 이탈 관성 제거, JM-005 Aha). 저장은 원자적(NFR-011)으로 손상 0, 경로는 항상 ~/.claude 경계 내 검증.
 
+### 3-7. 세션 액션·출력 라우팅 존 (T·R) — v1.1 델타
+
+#### [SC-23] 세션 액션 컨텍스트 메뉴 (Session Action Menu)
+- 분류/존: Sub · T·O(트리 노드/pane 우클릭) · 대상 UT-002·003
+- FR/FN: FR-014·015·046·018 / FN-SES-04·05·06·10·TRM-16 (관련 NFR-002·007)
+- 목적: 좌측 트리 노드 또는 터미널 pane 우클릭 시 세션 액션 메뉴 제공 — 명령 실행·종료·재시작·이름 변경. (구 SessionMonitor 컨텍스트 메뉴를 앱-소유 EmbeddedTerminal로 재이식.)
+- 핵심 구성요소: MenuItem `명령 실행`(→ 커맨드 주입 바 라우팅) · `종료`(정상/강제) · `재시작` · `이름 변경`(→ 인라인 편집) / 대상 = 우클릭한 탭/터미널(**대상 명시**).
+- 표시 데이터: {targetNode: tab|terminal · as · pid · state}.
+- 상호작용: 항목 선택→해당 액션. 명령 실행이 위험 패턴이면 위험 게이트(SC-13) 경유. 종료는 확인. 이름 변경은 인라인 편집 진입.
+- 상태: 로딩=N/A / 빈=N/A / 에러=대상 error·exited 시 명령 실행·이름변경 외 액션 제한.
+- airspace: pane(native 호스팅) 위 컨텍스트 메뉴 허용, 트리는 순수 WPF라 무관.
+- 진입: 트리/pane 우클릭(Flow B·C) / 이탈: 액션 실행 후 트리·목록 동기.
+```
++-- (right-click node) ----+
+| 명령 실행                |  -> CMD-BAR route
+| 종료 / 강제 종료         |
+| 재시작                   |
+| 이름 변경                |  -> inline edit
++--------------------------+
+```
+캡션: 우클릭 대상(탭/터미널)을 명시해 오조작을 차단. 명령 실행은 위험 시 게이트(SC-13) 경유.
+
+#### [SC-24] 출력 캡처 버퍼 (Capture Buffer)
+- 분류/존: Main · R(별도 패널, 터미널 존 밖) · 대상 UT-002·003
+- FR/FN: FR-047 / FN-SES-11 (관련 NFR-002·007)
+- 목적: A 세션 출력을 캡처 버퍼에 수집→사용자 뷰·편집(가공)→대상 세션(B/다수) 입력으로 주입. 세션 간 raw 출력 라우팅(IPC 파일 채널과 별개).
+- 핵심 구성요소: 캡처 소스 표시(출처 세션 as) / 버퍼 텍스트(편집 가능) / 대상 세션 선택(단일/다수) / [주입] 버튼 / 캡처 트리거(선택·마지막 명령·스트림).
+- 표시 데이터: {source_as, bufferContent(편집), targets[], captured_at}.
+- 상호작용: A 출력 캡처→버퍼 적재 / 버퍼 편집 / 대상 선택→주입(**대상 명시**, 위험 시 SC-13) / 다수 대상 독립 주입.
+- 상태: 로딩=캡처 중 / 빈=버퍼 비어있음→"capture output to route" / 에러=대상 error·exited→해당 대상 제외.
+- airspace: 터미널 native 존 밖 별도 패널(오버레이 아님).
+- 진입: 컨텍스트 메뉴/툴바 "출력 캡처"(Flow B) / 이탈: 주입 후 대상 세션 반영.
+```
++---- CAPTURE BUFFER (SC-24) -----+
+| source: [tower2 v]  [capture]   |
+| {editable buffer content....}   |
+| target: (o)single ( )multi:{N}  |
+|              [ INJECT >> ]      |
++--------------------------------+
+```
+캡션: A 출력을 버퍼로 받아 편집 후 임의 대상에 주입 — 클립보드 수동 복붙(FN-TRM-13)의 오케스트레이션 승격. 대상 명시로 오주입 차단.
+
 ---
 
 ## 4. 사용자 흐름
@@ -817,11 +863,11 @@ flowchart TD
 ## 6. 요약
 
 ### 6-1. 화면 수·분류·존 분포
-- **총 22 화면**: Shell/System 6 · Main 10 · Sub 6. Public/Auth/Admin 0(단일 유저·인증 없음, C7).
-- **존 분포**: T(터미널) 5 · L(내비게이터) 3 · R(오케스트레이션) 4 · S(셸/시스템) 1 · O(오버레이) 9(존 겸속).
+- **총 24 화면**: Shell/System 6 · Main 11 · Sub 7. Public/Auth/Admin 0(단일 유저·인증 없음, C7).
+- **존 분포**: T(터미널) 5 · L(내비게이터) 3 · R(오케스트레이션) 5 · S(셸/시스템) 1 · O(오버레이) 10(존 겸속).
 - **8 카테고리 화면 커버**: TRM(SC-07~10) · SES(SC-11·12) · PRF(SC-14·15) · IPC(SC-16~19) · OBS(SC-20) · AST(SC-21·22) · SEC(SC-13·04·21·22 횡단) · SYS(SC-01~06). → 누락 카테고리 0.
 
-### 6-2. FR 커버리지 (45/45 = 100%) ★불변식
+### 6-2. FR 커버리지 (47/47 = 100%) ★불변식
 
 | FR | SC | FR | SC | FR | SC |
 |---|---|---|---|---|---|
@@ -840,16 +886,17 @@ flowchart TD
 | FR-013 | 15·14 | FR-028 | 17 | FR-043 | 03 |
 | FR-014 | 12 | FR-029 | 16 | FR-044 | 10 |
 | FR-015 | 11·07·04 | FR-030 | 20 | FR-045 | 07·08 |
+| FR-046 | 07·23 | FR-047 | 24 | | |
 
-> **미커버 FR = 0** (45/45). NFR 중 화면 실현분: NFR-006/007/008(SC-02·13·21·22)·NFR-009(SC-06/08 격리)·NFR-010(SC-16)·NFR-011(SC-15·22)·NFR-022(SC-06). 나머지 품질 NFR은 10(tech) 검증.
+> **미커버 FR = 0** (47/47). NFR 중 화면 실현분: NFR-006/007/008(SC-02·13·21·22)·NFR-009(SC-06/08 격리)·NFR-010(SC-16)·NFR-011(SC-15·22)·NFR-022(SC-06). 나머지 품질 NFR은 10(tech) 검증.
 
 ### 6-3. 자체 검증 게이트
 | 게이트 | 결과 |
 |---|---|
-| FR 커버리지(미커버 FR=0) | ✅ 45/45 |
-| 고아 화면 0(모든 SC ≥1 흐름/IA 등장) | ✅ 22/22 (Flow A~F + IA §2 전수 등장) |
-| 참조 무결(인용 FR/FN/UT/BS가 레지스트리 존재) | ✅ FR-001~045·FN 55·UT-001~005·BS-001~022 인용, 재번호 0 |
-| SC 네임스페이스 유일 | ✅ SC-01~22 중복 0 |
+| FR 커버리지(미커버 FR=0) | ✅ 47/47 |
+| 고아 화면 0(모든 SC ≥1 흐름/IA 등장) | ✅ 24/24 (Flow A~F + IA §2 전수 등장, SC-23·24 IA §2-1) |
+| 참조 무결(인용 FR/FN/UT/BS가 레지스트리 존재) | ✅ FR-001~047·FN 57·UT-001~005·BS-001~023 인용, 재번호 0 |
+| SC 네임스페이스 유일 | ✅ SC-01~24 중복 0 |
 | 06 핵심 요구 반영 | ✅ 활성 세션 명시(SC-07·12·13)·주입 게이트(SC-13)·상태 배지(SC-07·11·16)·경로 경계(SC-21·22) |
 
 ---
@@ -858,7 +905,7 @@ flowchart TD
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_interface_designer · 깊이: deep
-- 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 45/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 55·화면 후보) · `06_behaviors.md`(BS 22/JM 5 접점) · `00_meeting_brief.md`(WPF 단일 셸·Feature×Layer·탭 컨테이너+탭 내 pane 분할) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
+- 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 47/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 57·화면 후보) · `06_behaviors.md`(BS 24/JM 5 접점) · `00_meeting_brief.md`(WPF 단일 셸·Feature×Layer·탭 컨테이너+탭 내 pane 분할) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
 - 발번 ID: SC-01~22 (FR/FN/UT/BS·카테고리는 참조만, 재번호 없음)
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md)(추적성 매트릭스 SC 열 완성 대상) · [`06_behaviors`](./06_behaviors.md)(접점→SC 확정) · [`09_database`](./09_database.md)(SC 표시 데이터→ENT)
 - 미해결·후속: 채널 1:1 매핑(④·SC-16)·위험 가드 정책 범위(⑧·SC-13)·프롬프트 편집 v1 범위(⑤·SC-21·22)·web_monitor 흡수 vs 병존(⑥·SC-17)·pane 분할(FR-008·SC-10 Could) → `13_followups` 연계.

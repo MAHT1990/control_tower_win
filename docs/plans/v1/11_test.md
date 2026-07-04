@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04_requirements`(FR 45·NFR 22·AC)·`05_functions`(FN 55)·`06_behaviors`(BS 22·JM 5·엣지 E1~E15)·`07_interfaces`(SC 22)를 입력으로, **"무엇이 충족되면 통과인가(AC)"를 "어떻게 검증하는가(TC)"로 변환**한다. 검증의 단위는 AC이며, 검증 대상 모든 AC는 ≥1 TC로 매핑된다(AC 전수 커버리지 = 최우선 불변식).
+본 문서는 `04_requirements`(FR 47·NFR 22·AC)·`05_functions`(FN 57)·`06_behaviors`(BS 24·JM 5·엣지 E1~E15)·`07_interfaces`(SC 24)를 입력으로, **"무엇이 충족되면 통과인가(AC)"를 "어떻게 검증하는가(TC)"로 변환**한다. 검증의 단위는 AC이며, 검증 대상 모든 AC는 ≥1 TC로 매핑된다(AC 전수 커버리지 = 최우선 불변식).
 
 - **정의하는 것**: 테스트 전략·피라미드/레벨(§1~2) / ConPTY·TUI·watch의 테스트 난제 대응(§2-5) / BS 기반 시나리오·엣지 회귀(§3) / AC↔TC 전수 매핑(§4) / 품질 지표·머지 차단 게이트(§5) / 테스트 데이터·환경(§6) / CI 파이프라인 게이트 삽입(§7).
 - **정의하지 않는 것(경계)**: FR/NFR·AC=04 / FN=05 / BS·엣지=06 / SC=07 / 렌더 성능 실측 목표치·아키텍처 검증·PoC=10(tech). 본 문서는 10이 확정할 성능 목표를 **게이트 임계로 연계만** 한다.
@@ -223,6 +223,8 @@ ConPTY 실프로세스·실파일을 사용(모킹 최소화). **Windows CI 러�
 | FR-008/AC1·2 | 타일 분할 동시 표시 | TC-E2E-14 | E2E | 정상 | 다중 세션 UniformGrid 타일 동시 표시·활성 pane 강조·추가/제거 재배치 |
 | FR-044/AC1 | pane 크기 조정 | TC-MANUAL-03 | 수동 | 정상 | 분할 핸들 드래그로 인접 pane 크기 재분배·최소 크기 가드 |
 | FR-045/AC1 | 세션 전환 단축키 | TC-INTG-10 | 통합 | 정상 | Ctrl+1…N → N번째 세션 pane 포커스·초과 번호 무시·목록 동기 |
+| FR-046/AC1 | 트리 인라인·컨텍스트 rename | TC-INTG-56 | 통합 | 정상 | 인라인 편집/메뉴로 이름 변경이 트리·pane·탭 즉시 반영 |
+| FR-046/AC2 | 빈값 거부 | TC-UNIT-33 | 단위 | 경계 | 빈 문자열 입력 시 이전 이름 유지(거부) |
 | FR-009/AC1 | 키 입력→세션 전달 | TC-INTG-09 | 통합 | 정상 | 포커스 키 입력→입력 파이프 write→세션 반영 |
 | FR-009/AC2 | 특수키 VT 변환 | TC-UNIT-08 | 단위 | 경계 | Ctrl+C/방향키/Enter→올바른 VT 시퀀스 인코딩 |
 | FR-010/AC1 | 드래그 셀 선택 | TC-MANUAL-02 | 수동 | 정상 | 셀 범위 드래그 선택 하이라이트 |
@@ -251,6 +253,9 @@ ConPTY 실프로세스·실파일을 사용(모킹 최소화). **Windows CI 러�
 | FR-017/AC2·3 | 목록↔탭 동기·전환 | TC-E2E-03 | E2E | 정상 | 목록↔탭 동기화·선택 시 활성 전환 |
 | FR-018/AC1 | exited 동일 프로파일 재시작 | TC-INTG-22 | 통합 | 정상 | exited 세션 동일 프로파일 재기동 |
 | FR-018/AC2 | as/멤버십 승계 옵션 | TC-INTG-23 | 통합 | 경계 | 재시작 시 이전 as/채널 멤버십 승계 옵션 적용 |
+| FR-047/AC1 | 캡처 버퍼 적재 | TC-INTG-57 | 통합 | 정상 | A 출력(선택/마지막/스트림)이 캡처 버퍼에 적재·편집 가능 |
+| FR-047/AC2 | 버퍼→대상 주입 | TC-INTG-58 | 통합 | 정상 | 편집 버퍼가 대상 세션(단일/다수) 입력에 독립 주입 |
+| FR-047/AC3 | 라우팅 위험 게이트 | TC-SEC-11 | 보안 | 정책 | 라우팅 주입도 위험 패턴 시 확인 게이트 100% 경유 |
 
 ### 4-3. PRF — 세션 프로파일
 
@@ -381,7 +386,7 @@ ConPTY 실프로세스·실파일을 사용(모킹 최소화). **Windows CI 러�
 
 | 게이트 | 결과 |
 |---|---|
-| v1 FR AC 미매핑 = 0 (FR-043 Could 제외) | ✅ 44 FR 전 AC ≥1 TC |
+| v1 FR AC 미매핑 = 0 (FR-043 Could 제외) | ✅ 46 FR 전 AC ≥1 TC (FR-046·047 포함) |
 | 고아 TC = 0 (모든 TC ≥1 AC/지표 소급) | ✅ 활성 132 TC 전건 소급 |
 | FN 실현 NFR 9종(006·007·008·009·010·011·017·020·022) TC 존재 | ✅ |
 | 품질 목표 NFR 13종 측정 TC 존재(10과 공유) | ✅ |
@@ -549,6 +554,6 @@ ConPTY 실프로세스·실파일을 사용(모킹 최소화). **Windows CI 러�
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_test_strategist · 깊이: deep
 - 발번 ID: **없음**(TC는 비레지스트리 내부 라벨). FR/NFR/FN/BS/JM/SC는 참조 전용(재번호 0·고아 참조 0).
-- 입력: [`04_requirements`](./04_requirements.md)(FR 45·NFR 22·AC·제약 C1~C10) · [`05_functions`](./05_functions.md)(FN 55) · [`06_behaviors`](./06_behaviors.md)(BS 22·JM 5·엣지 E1~E15) · [`07_interfaces`](./07_interfaces.md)(SC 22·Flow A~F) · 규약(plan_doc_skeleton·plan_id_system)
+- 입력: [`04_requirements`](./04_requirements.md)(FR 47·NFR 22·AC·제약 C1~C10) · [`05_functions`](./05_functions.md)(FN 57) · [`06_behaviors`](./06_behaviors.md)(BS 24·JM 5·엣지 E1~E15) · [`07_interfaces`](./07_interfaces.md)(SC 24·Flow A~F) · 규약(plan_doc_skeleton·plan_id_system)
 - 관련 문서: [`10_tech`](./10_tech.md)(성능 임계 확정·아키텍처 검증·PoC — G7 임계·NFR-018 경계 공유) · [`12_roadmap`](./12_roadmap.md)(게이트 마일스톤 배치)
 - 미해결·후속(→ `13_followups`): 위험 패턴 목록·on/off(⑧ → G3/TC-UNIT-28) · 채널 1:1 매핑 확정(④ → TC-INTG-39) · 상태 복원(FR-043) 유예 해제 시점.
