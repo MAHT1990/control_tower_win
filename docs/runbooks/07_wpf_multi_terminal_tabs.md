@@ -471,9 +471,11 @@ if (SelectedTab is null) return;   /* SelectedTab이 비었으면 즉시 함수 
 
         <!-- 우측 pane: 라이브 터미널. 테두리는 native 영역 밖이라 airspace 무관. 활성 pane만 강조 -->
         <DataTemplate x:Key="TerminalPane" DataType="{x:Type vm:TerminalViewModel}">
-            <Border Margin="2" BorderThickness="2" BorderBrush="Transparent">
+            <Border Margin="2" BorderThickness="2">
                 <Border.Style>
                     <Style TargetType="Border">
+                        <!-- 기본값은 로컬 속성이 아니라 스타일 Setter로! (로컬 값은 트리거를 이겨 버림 — 아래 문법 박스 ⑥) -->
+                        <Setter Property="BorderBrush" Value="Transparent"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsActive}" Value="True">
                                 <Setter Property="BorderBrush" Value="#3B82F6"/>
@@ -633,6 +635,27 @@ var parent = vm.Tabs.FirstOrDefault(t => t.Terminals.Contains(terminal));
 - `Command="{Binding AddTabCommand}"` — 버튼 클릭을 VM의 `ICommand`에 연결(Step 4 참조).
 - **왜 코드비하인드를 쓰나**: `TreeView.SelectedItem`은 읽기 전용이라 `{Binding}`으로 못 묶는다 → 예외적으로 `.xaml.cs`에서 이벤트(`SelectedItemChanged`)로 VM에 값을 넘긴다(위 개념 §4).
 
+**⑥ WPF 속성 우선순위 함정 ★ (파란 테두리가 안 뜰 때)**
+```xml
+<!-- 잘못: BorderBrush를 요소에 직접(로컬 값) → 트리거가 못 이김 → 항상 투명 -->
+<Border BorderThickness="2" BorderBrush="Transparent">
+    <Border.Style><Style TargetType="Border"><Style.Triggers>
+        <DataTrigger Binding="{Binding IsActive}" Value="True">
+            <Setter Property="BorderBrush" Value="#3B82F6"/>   <!-- 무시됨 -->
+
+<!-- 올바름: 기본값을 스타일 기본 Setter로 → 트리거가 이를 덮어씀 -->
+<Border BorderThickness="2">
+    <Border.Style><Style TargetType="Border">
+        <Setter Property="BorderBrush" Value="Transparent"/>   <!-- 기본값 -->
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsActive}" Value="True">
+                <Setter Property="BorderBrush" Value="#3B82F6"/>   <!-- 활성 시 적용 -->
+```
+- WPF는 한 속성 값이 여러 곳에서 지정되면 **우선순위**로 하나를 고른다: **로컬 값(요소에 직접 쓴 값) > 스타일 트리거 > 스타일 기본 Setter**.
+- Border에 `BorderBrush="Transparent"`를 **직접** 쓰면 그게 "로컬 값"이라, `DataTrigger`(트리거)의 Setter가 이겨도 로컬 값을 **못 이겨** 항상 투명하게 남는다 → 파란 테두리가 절대 안 뜬다.
+- **해결**: 기본값을 로컬 속성에서 떼어 **스타일의 기본 `<Setter>`**로 옮긴다. 같은 스타일 안에서는 트리거가 기본 Setter를 이기므로 `IsActive=true`에서 파란색이 적용된다.
+- 교훈: "평소 값 + 조건부 값"을 함께 줄 땐 **둘 다 스타일 안**에 둔다(로컬 속성과 섞지 않는다).
+
 ---
 
 ## Step 6. Shell 조합
@@ -744,6 +767,7 @@ dotnet build ControlTowerWin.csproj
 | pane 위에 WPF가 안 겹쳐짐 | airspace(native HwndHost) | 정상. 타일은 안 겹치므로 무관, 테두리는 native 밖이라 OK |
 | 빌드 CS 오류(SessionMonitor/TerminalLauncher 없음) | Shell이 삭제된 레거시를 참조 | Step 6의 `MainWindowViewModel`/`MainWindow` 교체 |
 | 탭이 접혀 터미널이 안 보임 | TreeViewItem 기본 미확장 | `ItemContainerStyle`에 `IsExpanded=True` |
+| **포커스 pane 파란 테두리가 안 뜸** | `BorderBrush="Transparent"`를 요소에 직접 지정 → 로컬 값이 DataTrigger를 이김(WPF 우선순위) | 기본값을 요소에서 떼어 스타일 기본 `<Setter Property="BorderBrush" Value="Transparent"/>`로 이동(문법 박스 Step 5 ⑥) |
 
 ---
 
