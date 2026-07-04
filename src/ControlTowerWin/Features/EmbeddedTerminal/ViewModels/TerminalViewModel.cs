@@ -13,6 +13,7 @@ public class TerminalViewModel : ViewModelBase, IRenamableNode
 {
     private bool _isActive;
     private bool _isEditing;
+    private bool _isInjectTarget;
     private int _pid;
     private string _title;
 
@@ -46,6 +47,13 @@ public class TerminalViewModel : ViewModelBase, IRenamableNode
         set { _isActive = value; OnPropertyChanged(); }
     }
 
+    /* 다중 주입 대상 체크(FR-014 다중 세션 독립 주입) */
+    public bool IsInjectTarget
+    {
+        get => _isInjectTarget;
+        set { _isInjectTarget = value; OnPropertyChanged(); }
+    }
+
     /* ConPTY 자식(pwsh) 프로세스 ID. 컨트롤 기동 후 채워진다(0=미확정) */
     public int Pid
     {
@@ -55,4 +63,19 @@ public class TerminalViewModel : ViewModelBase, IRenamableNode
 
     /* 좌측 트리 표시 라벨 (표시명 + PID) */
     public string TreeLabel => _pid > 0 ? $"{Title} (PID {_pid})" : $"{Title} (PID ...)";
+
+    /* 엔진 경계 세션(주입/캡처). View 로드 시 EasyTerminalControl에서 주입됨(NFR-018). */
+    private ITerminalSession? _session;
+
+    public void AttachSession(ITerminalSession session) => _session = session;
+
+    /* 커맨드 주입(FR-014/FN-SES-04). 개행을 붙여 실행한다. */
+    public void Inject(string command)
+    {
+        if (_session is null || string.IsNullOrWhiteSpace(command)) return;
+        _session.Send(command + "\r");
+    }
+
+    /* 현재 출력 캡처(FR-002 → FR-047 캡처 버퍼 소스, Task 4) */
+    public string CaptureOutput() => _session?.GetOutputText() ?? string.Empty;
 }

@@ -1,4 +1,6 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows.Input;
 using ControlTowerWin.Features.EmbeddedTerminal.Interfaces;
 using ControlTowerWin.Shared.Core;
@@ -14,6 +16,7 @@ public class TerminalSessionsViewModel : ViewModelBase
 {
     private TabViewModel? _selectedTab;
     private IRenamableNode? _selectedNode;
+    private string _commandText = string.Empty;
     private int _counter;
 
     public ObservableCollection<TabViewModel> Tabs { get; } = new();
@@ -23,6 +26,10 @@ public class TerminalSessionsViewModel : ViewModelBase
     public ICommand RenameCommand { get; }
     public ICommand RunCommand { get; }
     public ICommand RestartCommand { get; }
+    public ICommand InjectCommand { get; }
+
+    /* 컨텍스트 메뉴 "명령 실행"이 커맨드 바에 포커스를 요청 → View가 처리 */
+    public event Action? FocusCommandBarRequested;
 
     public TerminalSessionsViewModel()
     {
@@ -30,11 +37,41 @@ public class TerminalSessionsViewModel : ViewModelBase
         AddTerminalCommand = new RelayCommand(_ => SelectedTab?.AddTerminal(), _ => SelectedTab != null);
         CloseCommand = new RelayCommand(_ => CloseSelected(), _ => SelectedTab != null);
         RenameCommand = new RelayCommand(_ => BeginRename(), _ => SelectedNode != null);
-        /* 명령 실행(FR-014 주입)=Runbook 08, 재시작(FN-SES-10)=Runbook 09에서 실동작 연결.
-           SC-23 구조를 선확립하고 커맨드는 스텁으로 배선한다. */
-        RunCommand = new RelayCommand(_ => { /* TODO(08): TermPTY.WriteToTerm 주입 */ }, _ => SelectedTab != null);
+        InjectCommand = new RelayCommand(_ => InjectToSelected(),
+            _ => HasInjectTargets() && !string.IsNullOrWhiteSpace(CommandText));
+        /* "명령 실행" → 커맨드 바 포커스(실주입은 InjectCommand). 재시작=Runbook 09 스텁. */
+        RunCommand = new RelayCommand(_ => FocusCommandBarRequested?.Invoke(), _ => SelectedTab?.SelectedTerminal != null);
         RestartCommand = new RelayCommand(_ => { /* TODO(09): RestartTerm/DisconnectConPTYTerm */ }, _ => SelectedTab != null);
         AddTab();
+    }
+
+    /* 커맨드 바 입력 텍스트 */
+    public string CommandText
+    {
+        get => _commandText;
+        set { _commandText = value; OnPropertyChanged(); }
+    }
+
+    /* 주입 대상이 있는지: 체크된 다중 대상 OR 선택 터미널 */
+    private bool HasInjectTargets() =>
+        Tabs.Any(t => t.Terminals.Any(x => x.IsInjectTarget)) || SelectedTab?.SelectedTerminal != null;
+
+    /* 커맨드 주입(FR-014/FN-SES-04). 체크된 다중 대상 전부에 독립 주입, 없으면 선택 터미널 하나. */
+    private void InjectToSelected()
+    {
+        var targets = Tabs.SelectMany(t => t.Terminals).Where(t => t.IsInjectTarget).ToList();
+        if (targets.Count == 0)
+        {
+            var single = SelectedTab?.SelectedTerminal;
+            if (single != null) targets.Add(single);
+        }
+        if (targets.Count == 0) return;
+
+        foreach (var terminal in targets)
+        {
+            terminal.Inject(CommandText);
+        }
+        CommandText = string.Empty;
     }
 
     /* 좌측 트리에서 현재 선택된 노드(탭 또는 터미널) — 이름 변경 대상 */

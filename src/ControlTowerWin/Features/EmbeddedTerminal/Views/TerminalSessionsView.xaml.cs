@@ -12,7 +12,31 @@ namespace ControlTowerWin.Features.EmbeddedTerminal.Views;
 
 public partial class TerminalSessionsView : UserControl
 {
-    public TerminalSessionsView() => InitializeComponent();
+    public TerminalSessionsView()
+    {
+        InitializeComponent();
+        DataContextChanged += OnDataContextChanged;
+    }
+
+    /* VM의 커맨드 바 포커스 요청("명령 실행" 컨텍스트 메뉴)을 View가 처리 */
+    private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is TerminalSessionsViewModel vm)
+        {
+            vm.FocusCommandBarRequested += () => CommandBox.Focus();
+        }
+    }
+
+    /* 커맨드 바 Enter → 주입 실행 */
+    private void CommandBox_KeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Enter) return;
+        if (DataContext is TerminalSessionsViewModel vm && vm.InjectCommand.CanExecute(null))
+        {
+            vm.InjectCommand.Execute(null);
+            e.Handled = true;
+        }
+    }
 
     /* TreeView.SelectedItem은 읽기전용이라 바인딩 불가 → 코드비하인드에서 VM 선택 상태로 반영.
        선택 노드(탭/터미널)를 SelectedNode에 실어 rename 대상으로 삼는다. */
@@ -43,6 +67,31 @@ public partial class TerminalSessionsView : UserControl
     {
         var item = FindAncestor<TreeViewItem>(e.OriginalSource as DependencyObject);
         if (item != null) item.IsSelected = true;
+    }
+
+    /* pane(터미널) 클릭·포커스 시 → 해당 터미널을 좌측 트리에서 선택.
+       트리 선택이 OnTreeSelectionChanged를 통해 SelectedTerminal·pane 테두리·트리 하이라이트를 일괄 동기. */
+    private void Pane_GotFocus(object sender, KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is FrameworkElement fe && fe.DataContext is TerminalViewModel terminal)
+        {
+            SelectTerminalInTree(terminal);
+        }
+    }
+
+    /* 터미널에 해당하는 TreeViewItem을 프로그램적으로 선택(포커스는 터미널에 유지) */
+    private void SelectTerminalInTree(TerminalViewModel terminal)
+    {
+        if (DataContext is not TerminalSessionsViewModel vm) return;
+        var tab = vm.Tabs.FirstOrDefault(t => t.Terminals.Contains(terminal));
+        if (tab is null) return;
+        if (SessionTree.ItemContainerGenerator.ContainerFromItem(tab) is not TreeViewItem tabItem) return;
+        tabItem.IsExpanded = true;
+        if (tabItem.ItemContainerGenerator.ContainerFromItem(terminal) is TreeViewItem termItem
+            && !termItem.IsSelected)
+        {
+            termItem.IsSelected = true;
+        }
     }
 
     /* F2 → 선택 노드 인라인 편집 시작 */
