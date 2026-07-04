@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using ControlTowerWin.Features.EmbeddedTerminal.Interfaces;
 using ControlTowerWin.Shared.Core;
 
 namespace ControlTowerWin.Features.EmbeddedTerminal.ViewModels;
@@ -8,20 +9,40 @@ namespace ControlTowerWin.Features.EmbeddedTerminal.ViewModels;
 /// 우측에 pane 분할로 동시 표시된다(FR-006 탭 + FR-008 탭 내 분할).
 /// 비선택 탭의 터미널도 View는 살아남아 ConPTY 세션이 유지된다(keep-alive).
 /// </summary>
-public class TabViewModel : ViewModelBase
+public class TabViewModel : ViewModelBase, IRenamableNode
 {
     private bool _isSelected;
+    private bool _isEditing;
+    private string _title;
     private TerminalViewModel? _selectedTerminal;
     private int _counter;
-
-    public string Title { get; }
 
     public ObservableCollection<TerminalViewModel> Terminals { get; } = new();
 
     public TabViewModel(string title)
     {
-        Title = title;
+        _title = title;
         AddTerminal();
+    }
+
+    /* 표시 이름(FR-046, 런타임 편집 가능). 빈 문자열은 거부(이전 이름 유지). */
+    public string Title
+    {
+        get => _title;
+        set
+        {
+            var trimmed = value?.Trim();
+            if (string.IsNullOrEmpty(trimmed)) return;
+            _title = trimmed;
+            OnPropertyChanged();
+        }
+    }
+
+    /* 좌측 트리 인라인 편집 모드 토글 */
+    public bool IsEditing
+    {
+        get => _isEditing;
+        set { _isEditing = value; OnPropertyChanged(); }
     }
 
     /* 현재 화면에 표시되는 탭인지(우측 pane 영역 노출 토글) */
