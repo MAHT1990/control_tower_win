@@ -13,7 +13,13 @@ public class EasyTerminalSession : ITerminalSession
 {
     private readonly EasyTerminalControl _control;
 
-    public EasyTerminalSession(EasyTerminalControl control) => _control = control;
+    public EasyTerminalSession(EasyTerminalControl control)
+    {
+        _control = control;
+        /* 출력 누적 로깅을 세션 생성 시 조기 활성화 → 이후 GetConsoleText가 누적분을 반환.
+           캡처 시점에 켜면 그 전 출력을 놓치므로 여기서 미리 켠다(FR-047 캡처 신뢰성). */
+        _control.LogConPTYOutput = true;
+    }
 
     public bool IsReady => _control.ConPTYTerm != null;
 
@@ -25,12 +31,6 @@ public class EasyTerminalSession : ITerminalSession
         term.WriteToTerm(text.AsSpan());
     }
 
-    /* 현재 콘솔 텍스트 캡처. 로깅을 켠 뒤 누적 텍스트를 반환(관찰 전용, VT 변형 없음). */
-    public string GetOutputText()
-    {
-        var term = _control.ConPTYTerm;
-        if (term is null) return string.Empty;
-        _control.LogConPTYOutput = true;
-        return term.GetConsoleText();
-    }
+    /* 현재까지 누적된 콘솔 텍스트 캡처(관찰 전용, VT 변형 없음). */
+    public string GetOutputText() => _control.ConPTYTerm?.GetConsoleText() ?? string.Empty;
 }

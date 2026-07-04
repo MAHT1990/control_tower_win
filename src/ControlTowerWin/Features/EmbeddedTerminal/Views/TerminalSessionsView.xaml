@@ -76,6 +76,13 @@
     </UserControl.Resources>
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Row 0: 좌 트리 + 우 pane 분할 -->
+        <Grid Grid.Row="0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="220"/>
             <ColumnDefinition Width="*"/>
@@ -147,5 +154,24 @@
                 </DataTemplate>
             </ItemsControl.ItemTemplate>
         </ItemsControl>
+        </Grid>
+
+        <!-- Row 1: SC-24 출력 캡처 버퍼 (FR-047, mechanism c: A출력→편집→대상 주입) -->
+        <Border Grid.Row="1" BorderBrush="#DDDDDD" BorderThickness="0,1,0,0" Margin="0,6,0,0" Padding="0,6,0,0">
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,4">
+                    <TextBlock Text="출력 캡처 버퍼" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding CaptureBuffer.SourceAs, StringFormat=' (from {0})'}"
+                               VerticalAlignment="Center" Foreground="Gray"/>
+                    <Button Content="캡처" Command="{Binding CaptureCommand}" Margin="8,0,0,0" Padding="6,2"
+                            ToolTip="선택 터미널의 현재 출력을 버퍼로 수집"/>
+                    <Button Content="대상에 주입" Command="{Binding RouteCommand}" Margin="4,0,0,0" Padding="6,2"
+                            ToolTip="버퍼 내용을 체크된 대상(없으면 선택 터미널)에 주입"/>
+                </StackPanel>
+                <TextBox Text="{Binding CaptureBuffer.Content, UpdateSourceTrigger=PropertyChanged}"
+                         AcceptsReturn="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                         Height="80" FontFamily="Consolas"/>
+            </DockPanel>
+        </Border>
     </Grid>
 </UserControl>

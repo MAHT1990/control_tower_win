@@ -27,6 +27,11 @@ public class TerminalSessionsViewModel : ViewModelBase
     public ICommand RunCommand { get; }
     public ICommand RestartCommand { get; }
     public ICommand InjectCommand { get; }
+    public ICommand CaptureCommand { get; }
+    public ICommand RouteCommand { get; }
+
+    /* 출력 캡처 버퍼(FR-047/ENT-019): A 출력 수집·가공·대상 주입 */
+    public OutputCaptureBufferViewModel CaptureBuffer { get; } = new();
 
     /* 컨텍스트 메뉴 "명령 실행"이 커맨드 바에 포커스를 요청 → View가 처리 */
     public event Action? FocusCommandBarRequested;
@@ -42,6 +47,9 @@ public class TerminalSessionsViewModel : ViewModelBase
         /* "명령 실행" → 커맨드 바 포커스(실주입은 InjectCommand). 재시작=Runbook 09 스텁. */
         RunCommand = new RelayCommand(_ => FocusCommandBarRequested?.Invoke(), _ => SelectedTab?.SelectedTerminal != null);
         RestartCommand = new RelayCommand(_ => { /* TODO(09): RestartTerm/DisconnectConPTYTerm */ }, _ => SelectedTab != null);
+        CaptureCommand = new RelayCommand(_ => Capture(), _ => SelectedTab?.SelectedTerminal != null);
+        RouteCommand = new RelayCommand(_ => InjectToTargets(CaptureBuffer.Content),
+            _ => CaptureBuffer.HasContent && HasInjectTargets());
         AddTab();
     }
 
@@ -56,22 +64,36 @@ public class TerminalSessionsViewModel : ViewModelBase
     private bool HasInjectTargets() =>
         Tabs.Any(t => t.Terminals.Any(x => x.IsInjectTarget)) || SelectedTab?.SelectedTerminal != null;
 
-    /* 커맨드 주입(FR-014/FN-SES-04). 체크된 다중 대상 전부에 독립 주입, 없으면 선택 터미널 하나. */
+    /* 커맨드 바 주입(FR-014/FN-SES-04) → 대상에 주입 후 입력 비움 */
     private void InjectToSelected()
     {
+        InjectToTargets(CommandText);
+        CommandText = string.Empty;
+    }
+
+    /* 텍스트를 대상 세션들에 독립 주입. 체크된 다중 대상 전부, 없으면 선택 터미널 하나.
+       커맨드 바(FR-014)·캡처 버퍼 라우팅(FR-047) 공용 주입 경로. */
+    private void InjectToTargets(string text)
+    {
+        if (string.IsNullOrEmpty(text)) return;
         var targets = Tabs.SelectMany(t => t.Terminals).Where(t => t.IsInjectTarget).ToList();
         if (targets.Count == 0)
         {
             var single = SelectedTab?.SelectedTerminal;
             if (single != null) targets.Add(single);
         }
-        if (targets.Count == 0) return;
-
         foreach (var terminal in targets)
         {
-            terminal.Inject(CommandText);
+            terminal.Inject(text);
         }
-        CommandText = string.Empty;
+    }
+
+    /* 선택 터미널의 현재 출력을 캡처 버퍼에 수집(FR-047 mechanism c) */
+    private void Capture()
+    {
+        var terminal = SelectedTab?.SelectedTerminal;
+        if (terminal is null) return;
+        CaptureBuffer.Capture(terminal.Title, terminal.CaptureOutput());
     }
 
     /* 좌측 트리에서 현재 선택된 노드(탭 또는 터미널) — 이름 변경 대상 */
