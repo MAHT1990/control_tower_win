@@ -78,4 +78,10 @@ public class TerminalViewModel : ViewModelBase, IRenamableNode
 
     /* 현재 출력 캡처(FR-002 → FR-047 캡처 버퍼 소스, Task 4) */
     public string CaptureOutput() => _session?.GetOutputText() ?? string.Empty;
+
+    /* 세션 재시작(FN-SES-10) */
+    public void Restart() => _session?.Restart();
+
+    /* 세션 종료·정리(FN-TRM-02, 좀비 방지). View 언로드·앱 종료 시 호출. */
+    public void Cleanup() => _session?.Close();
 }

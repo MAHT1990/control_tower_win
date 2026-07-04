@@ -12,6 +12,7 @@ namespace ControlTowerWin.Features.EmbeddedTerminal.Services;
 public class EasyTerminalSession : ITerminalSession
 {
     private readonly EasyTerminalControl _control;
+    private bool _closed;
 
     public EasyTerminalSession(EasyTerminalControl control)
     {
@@ -33,4 +34,15 @@ public class EasyTerminalSession : ITerminalSession
 
     /* 현재까지 누적된 콘솔 텍스트 캡처(관찰 전용, VT 변형 없음). */
     public string GetOutputText() => _control.ConPTYTerm?.GetConsoleText() ?? string.Empty;
+
+    /* 깨끗한 새 term으로 재시작(기존 dispose). StartupCommandLine 재적용. */
+    public void Restart() => _control.RestartTerm();
+
+    /* ConPTY 프론트엔드 분리·정리(좀비 방지). 멱등 — 중복 호출 무해. */
+    public void Close()
+    {
+        if (_closed) return;
+        _closed = true;
+        _control.DisconnectConPTYTerm();
+    }
 }

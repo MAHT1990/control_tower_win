@@ -46,7 +46,7 @@ public class TerminalSessionsViewModel : ViewModelBase
             _ => HasInjectTargets() && !string.IsNullOrWhiteSpace(CommandText));
         /* "명령 실행" → 커맨드 바 포커스(실주입은 InjectCommand). 재시작=Runbook 09 스텁. */
         RunCommand = new RelayCommand(_ => FocusCommandBarRequested?.Invoke(), _ => SelectedTab?.SelectedTerminal != null);
-        RestartCommand = new RelayCommand(_ => { /* TODO(09): RestartTerm/DisconnectConPTYTerm */ }, _ => SelectedTab != null);
+        RestartCommand = new RelayCommand(_ => SelectedTab?.SelectedTerminal?.Restart(), _ => SelectedTab?.SelectedTerminal != null);
         CaptureCommand = new RelayCommand(_ => Capture(), _ => SelectedTab?.SelectedTerminal != null);
         RouteCommand = new RelayCommand(_ => InjectToTargets(CaptureBuffer.Content),
             _ => CaptureBuffer.HasContent && HasInjectTargets());
@@ -94,6 +94,15 @@ public class TerminalSessionsViewModel : ViewModelBase
         var terminal = SelectedTab?.SelectedTerminal;
         if (terminal is null) return;
         CaptureBuffer.Capture(terminal.Title, terminal.CaptureOutput());
+    }
+
+    /* 앱 종료 시 소유 세션 일괄 정리(FN-TRM-02, 좀비 방지) */
+    public void CleanupAll()
+    {
+        foreach (var terminal in Tabs.SelectMany(t => t.Terminals))
+        {
+            terminal.Cleanup();
+        }
     }
 
     /* 좌측 트리에서 현재 선택된 노드(탭 또는 터미널) — 이름 변경 대상 */
