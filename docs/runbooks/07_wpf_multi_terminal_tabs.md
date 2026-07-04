@@ -3,6 +3,7 @@
 > **방식**: Runbook 06과 동일 — **직접 구현·검증(PoC)한 절차를 런북으로 역산출**한다.
 > 본 런북의 코드는 `.NET 10 / net10.0-windows`에서 빌드 0/0·실행 검증을 마친 것이다.
 > 학습을 위해 **런북을 보며 직접 손으로 타이핑**하는 것을 전제로 상세히 기술한다.
+> **🔤 C# 문법 짚기**: C#/WPF가 처음이어도 따라올 수 있도록, 각 Step 끝에 그 단계에서 **새로 등장한 문법**만 골라 설명하는 박스를 둔다(앞 Step에서 설명한 건 반복하지 않는다).
 
 ---
 
@@ -172,6 +173,48 @@ public class TerminalViewModel : ViewModelBase
 - `IsActive`: 좌측 트리에서 고른 터미널을 우측 pane 테두리로 강조하기 위한 플래그.
 - `Pid`/`TreeLabel`: 트리에 `Terminal 1 (PID 12345)`처럼 표시. **PID 실값 연결은 후속**이라 지금은 `(PID …)`로 뜬다(구조만 준비).
 
+### 🔤 C# 문법 짚기 (Step 2)
+
+C#이 처음이라면 이 파일에 쓰인 문법을 아래에서 짚어 둔다.
+
+**① 필드(field) vs 속성(property)**
+```csharp
+private bool _isActive;              /* 필드: 값을 실제로 담는 내부 저장소. 앞의 _는 "private 필드" 관례 */
+public bool IsActive { get; set; }   /* 속성: 바깥에서 값을 읽고/쓰는 창구 */
+```
+- 필드는 클래스 **안에서만** 쓰는 실제 상자, 속성은 바깥에 낸 **창구**다. WPF 바인딩(`{Binding IsActive}`)은 속성만 본다.
+
+**② 자동 속성 (get만 = 읽기 전용)**
+```csharp
+public string Title { get; }   /* get만 있으면 읽기 전용. 생성자에서 한 번 정해지면 못 바꿈 */
+```
+
+**③ 전체 속성 (get/set + 변경 통지)**
+```csharp
+public bool IsActive
+{
+    get => _isActive;                               /* 읽을 때: 필드 값을 돌려줌 */
+    set { _isActive = value; OnPropertyChanged(); } /* 쓸 때: 필드에 저장 + 화면에 "바뀌었다" 통지 */
+}
+```
+- `value`는 C# **예약어**로, `set`에 들어온 새 값을 가리킨다(`IsActive = true` 하면 `value == true`).
+- `OnPropertyChanged()`는 `ViewModelBase`가 준 메서드로, WPF에 "이 속성 바뀌었으니 화면 갱신해"라고 알린다. **이게 없으면 값은 바뀌어도 화면이 안 바뀐다.**
+
+**④ `=>` (expression-bodied, 식 본문)**
+```csharp
+public TerminalViewModel(string title) => Title = title;   /* 생성자를 한 줄로 */
+get => _isActive;                                          /* getter를 한 줄로 */
+```
+- `=> 식`은 `{ return 식; }`(또는 문장 하나)의 짧은 표기다. 몸통이 한 줄이면 중괄호 대신 쓴다.
+
+**⑤ 문자열 보간 `$"..."` · 삼항 `?:` · `nameof`**
+```csharp
+public string TreeLabel => _pid > 0 ? $"{Title} (PID {_pid})" : $"{Title} (PID …)";
+```
+- `$"..."` 안의 `{Title}`은 그 자리에 변수 값을 끼워 넣는다(보간).
+- `조건 ? A : B`는 "조건이 참이면 A, 아니면 B"인 **삼항 연산자**다. `_pid`가 0보다 크면 실제 PID를, 아니면 `(PID …)`를 만든다.
+- `OnPropertyChanged(nameof(TreeLabel))`의 `nameof(TreeLabel)`은 문자열 `"TreeLabel"`을 **오타 없이** 만들어 준다(속성 이름을 바꾸면 자동 반영). `Pid`가 바뀌면 `TreeLabel` 표시도 갱신하라고 함께 통지하는 것.
+
 ---
 
 ## Step 3. TabViewModel — 탭(터미널 컬렉션 소유)
@@ -248,6 +291,45 @@ public class TabViewModel : ViewModelBase
 - `IsSelected`: 우측에서 **이 탭이 보이는지** 토글(바깥 ItemsControl의 `Visibility` 바인딩 대상).
 - `SelectedTerminal`: 탭 내부의 **포커스 pane**. 세팅 시 소속 터미널들의 `IsActive`를 갱신.
 - 탭을 새로 만들면 터미널 1개를 자동 생성(빈 탭 방지).
+
+### 🔤 C# 문법 짚기 (Step 3)
+
+**① `using` 지시문**
+```csharp
+using System.Collections.ObjectModel;   /* ObservableCollection이 든 "도구상자"를 가져옴 */
+```
+- 파일 맨 위 `using`은 "이 파일에서 이 네임스페이스의 타입을 짧은 이름으로 쓰겠다"는 선언이다.
+
+**② 제네릭 컬렉션 `<T>` + ObservableCollection**
+```csharp
+public ObservableCollection<TerminalViewModel> Terminals { get; } = new();
+```
+- `<TerminalViewModel>`은 "이 목록엔 TerminalViewModel만 담는다"는 **제네릭 타입 인자**다(형이 고정돼 안전).
+- `ObservableCollection`은 일반 리스트와 달리 **항목이 추가/삭제되면 화면에 자동 통지**한다(WPF 목록 바인딩용). Step 2 ③의 속성 통지를 목록 버전으로 해 주는 셈.
+- `= new();`의 `new()`는 **타입을 생략한 생성**이다. 왼쪽에 이미 타입이 있으니 `new ObservableCollection<TerminalViewModel>()`를 `new()`로 줄였다.
+
+**③ nullable 참조 타입 `T?`**
+```csharp
+private TerminalViewModel? _selectedTerminal;   /* ? = "이 변수는 null(비어 있음)일 수 있다" */
+```
+- 타입 뒤 `?`는 "값이 없을 수도 있음"을 명시한다. 선택된 터미널이 아직 없을 수 있어 `?`를 붙였다(이 프로젝트는 `<Nullable>enable</Nullable>`이라 `?` 없는 타입에 null을 넣으면 경고가 뜬다).
+
+**④ `foreach` + `var` + `ReferenceEquals`**
+```csharp
+foreach (var t in Terminals)
+    t.IsActive = ReferenceEquals(t, value);
+```
+- `foreach (var t in 목록)`은 목록을 하나씩 꺼내 `t`로 반복한다. `var`는 타입을 컴파일러가 추론(`t`는 TerminalViewModel).
+- `ReferenceEquals(a, b)`는 두 변수가 **똑같은 객체**를 가리키는지 검사한다. 즉 "지금 도는 터미널이 방금 선택된 그 터미널이면 IsActive=true" → 하나만 활성 표시된다.
+
+**⑤ 메서드 반환형 · `IndexOf` · `Math.Min`**
+```csharp
+public TerminalViewModel AddTerminal() { ... return terminal; }  /* 반환형 TerminalViewModel = 만든 걸 돌려줌 */
+var idx = Terminals.IndexOf(terminal);                           /* 목록에서 몇 번째인지(없으면 -1) */
+Terminals[System.Math.Min(idx, Terminals.Count - 1)]             /* 둘 중 작은 값 = 범위 넘침 방지 */
+```
+- 메서드 이름 앞의 타입(`TerminalViewModel`)이 **반환형**이다. `void`면 "돌려주는 값 없음".
+- `System.Math.Min`처럼 **정규화된 이름**(네임스페이스.타입.메서드)을 쓰면 `using` 없이도 바로 호출된다. 삭제한 터미널 다음으로 어떤 걸 선택할지 고를 때 인덱스가 목록 밖으로 안 나가게 막는 계산이다.
 
 ---
 
@@ -328,6 +410,36 @@ public class TerminalSessionsViewModel : ViewModelBase
 
 - `AddTabCommand` → 새 탭(+터미널 1). `AddTerminalCommand` → **선택된 탭에** 터미널 추가. `CloseCommand` → 포커스 터미널이 2개 이상 중 하나면 그 터미널만, 아니면 탭 전체를 닫음.
 - `SelectedTab` 세팅 시 모든 탭의 `IsSelected` 갱신 → 우측에서 **선택 탭만** 보이게 된다.
+
+### 🔤 C# 문법 짚기 (Step 4)
+
+**① `ICommand` + `RelayCommand` (버튼 → 메서드 연결)**
+```csharp
+public ICommand AddTabCommand { get; }
+AddTabCommand = new RelayCommand(_ => AddTab());
+```
+- WPF 버튼의 `Command="{Binding AddTabCommand}"`는 `ICommand` 타입에 연결된다. `RelayCommand`(Shared/Core)는 그 간편 구현으로, "누르면 실행할 동작"을 넣어 만든다(이벤트 핸들러 `Click=` 대신 쓰는 MVVM 방식).
+
+**② 람다식 `=>` 와 버림 매개변수 `_`**
+```csharp
+_ => AddTab()                                              /* "인자는 안 쓰고, 그냥 AddTab() 실행" */
+_ => SelectedTab?.AddTerminal(), _ => SelectedTab != null  /* 실행 동작 , 실행 가능 여부 */
+```
+- `매개변수 => 식`은 이름 없는 짧은 함수(**람다**)다. `RelayCommand`가 나중에 실행할 코드를 이렇게 건넨다(Step 2 ④의 `=>`와 같은 기호지만, 여기선 "함수 자체를 값으로" 넘긴다).
+- `_`(밑줄)는 **"이 인자는 안 쓴다"**는 표시(버림, discard). Command는 파라미터를 넘길 수 있지만 여기선 안 쓰므로 `_`.
+- `RelayCommand`의 **두 번째 인자** `_ => SelectedTab != null`은 **실행 가능 여부**(canExecute)다. 이게 false면 버튼이 자동으로 비활성(회색)된다.
+
+**③ null 조건 연산자 `?.`**
+```csharp
+SelectedTab?.AddTerminal()   /* SelectedTab이 null이면 아무것도 안 하고 넘어감 */
+```
+- `?.`는 "앞이 null이 아닐 때만 뒤를 실행"한다. null인데 `.AddTerminal()`을 부르면 프로그램이 터지는데(NullReferenceException), `?.`가 그걸 막는다.
+
+**④ `is null` 가드**
+```csharp
+if (SelectedTab is null) return;   /* SelectedTab이 비었으면 즉시 함수 종료 */
+```
+- `x is null`은 "x가 null이냐"를 묻는 현대적 표기(= `x == null`). 함수 앞머리에서 예외 상황을 먼저 걸러 내고 빠져나가는 **가드(guard)** 패턴이다.
 
 ---
 
@@ -476,6 +588,51 @@ public partial class TerminalSessionsView : UserControl
 
 - 탭 노드 선택 → 그 탭을 표시. 터미널 노드 선택 → 소속 탭을 찾아 표시 + 그 터미널을 포커스(테두리).
 
+### 🔤 C# 문법 짚기 (Step 5)
+
+XAML(화면 배치)의 짜임새는 위 "왜 이렇게 짜는가"에서 다뤘고, 여기선 **코드비하인드(.xaml.cs)의 C# 문법**과 **XAML 바인딩 기초**를 짚는다.
+
+**① `partial class` (XAML ↔ 코드비하인드 한 쌍)**
+```csharp
+public partial class TerminalSessionsView : UserControl { ... }
+```
+- `partial`은 "이 클래스는 여러 파일로 나뉘어 있다"는 뜻. `.xaml`이 자동 생성하는 반쪽과 `.xaml.cs`의 반쪽이 합쳐져 하나의 클래스가 된다. `InitializeComponent()`가 그 XAML 반쪽을 불러온다.
+- `: UserControl`은 **상속**이다. "이 클래스는 UserControl을 물려받는다" → 화면 조각으로 쓸 수 있게 됨.
+
+**② 타입 패턴 `is not T x` (형 검사 + 변수 받기)**
+```csharp
+if (DataContext is not TerminalSessionsViewModel vm) return;
+```
+- "DataContext가 TerminalSessionsViewModel **타입이 아니면** 함수 종료"이고, **맞으면** 그 값을 `vm`이라는 변수에 담아 아래에서 바로 쓴다(형 검사 + 형변환 + 변수 선언을 한 방에).
+
+**③ `switch` + 타입 패턴 매칭**
+```csharp
+switch (e.NewValue)
+{
+    case TabViewModel tab:        /* 선택된 게 탭이면, 그걸 tab으로 받아 */
+        vm.SelectedTab = tab;
+        break;                    /* 이 갈래 끝 (다음 case로 안 흘러감) */
+    case TerminalViewModel terminal:
+        ...
+        break;
+}
+```
+- `switch`는 값에 따라 갈래를 고른다. `case 타입 변수:`는 "이 타입이면 이 변수로 받아 처리". C#은 각 갈래 끝에 `break;`가 **필수**다(안 쓰면 컴파일 오류).
+
+**④ LINQ: `FirstOrDefault` + 람다 + `Contains`**
+```csharp
+var parent = vm.Tabs.FirstOrDefault(t => t.Terminals.Contains(terminal));
+```
+- `FirstOrDefault(조건)`은 목록에서 **조건을 처음 만족하는 항목**을 돌려주고, 없으면 null을 준다(`using System.Linq` 필요).
+- `t => t.Terminals.Contains(terminal)`은 "그 탭의 터미널 목록에 이 터미널이 들어 있냐"는 조건 람다 → 이 터미널의 **부모 탭**을 찾는다.
+- `parent is not null`은 "찾았으면"이라는 뜻(②의 `not` 패턴).
+
+**⑤ XAML 바인딩 기초 (참고)**
+- `{Binding Tabs}` — 화면 요소를 VM의 `Tabs` 속성에 연결. VM에서 값이 바뀌면(=OnPropertyChanged/ObservableCollection) 화면이 자동 갱신.
+- `{StaticResource BoolToVis}` — 위 `<UserControl.Resources>`에 `x:Key="BoolToVis"`로 등록해 둔 변환기를 가져다 씀(bool → Visibility 변환).
+- `Command="{Binding AddTabCommand}"` — 버튼 클릭을 VM의 `ICommand`에 연결(Step 4 참조).
+- **왜 코드비하인드를 쓰나**: `TreeView.SelectedItem`은 읽기 전용이라 `{Binding}`으로 못 묶는다 → 예외적으로 `.xaml.cs`에서 이벤트(`SelectedItemChanged`)로 VM에 값을 넘긴다(위 개념 §4).
+
 ---
 
 ## Step 6. Shell 조합
@@ -529,6 +686,19 @@ public class MainWindowViewModel : ViewModelBase
 
 > `SessionList`·`Terminal`(단일)·`NewTerminal` 바인딩과 그 `DataTemplate`을 모두 제거하고, `Sessions` 하나로 대체한다.
 > `MainWindow.xaml.cs`는 06 그대로(`DataContext = new MainWindowViewModel()`).
+
+### 🔤 C# 문법 짚기 (Step 6)
+
+**① 식 본문 생성자 (expression-bodied constructor)**
+```csharp
+public MainWindowViewModel() => Sessions = new TerminalSessionsViewModel();
+```
+- 생성자 몸통이 한 줄(대입 하나)이라 `{ Sessions = ...; }` 대신 `=> ...`로 줄였다(Step 2 ④ `=>`와 같은 축약).
+- 06에서는 `SessionList`·`NewTerminal`·`Terminal` 셋을 만들었지만, 이제 `Sessions` 하나만 조합한다 — Shell이 **얇아진다**(레거시 3종 제거 효과, Feature×Layer의 "Shell은 조합만" 원칙).
+
+**② XAML 쪽 변화 요약**
+- `<DataTemplate DataType="{x:Type etvm:TerminalSessionsViewModel}">`: "이 VM 타입을 그릴 땐 이 View를 써라"는 **VM→View 매핑**(VM-First 자동 연결).
+- `<ContentControl Content="{Binding Sessions}"/>`: 그 자리에 `Sessions` VM을 꽂으면, 위 매핑에 따라 `TerminalSessionsView`가 자동으로 렌더된다.
 
 ---
 
