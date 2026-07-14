@@ -1,6 +1,6 @@
 # 09. 데이터베이스 설계 (Database Design — 영속 모델 · ERD · ENT)
 
-> 담당: plan_db_modeler · 깊이: deep · 총 ENT 18 (영속 9 / 런타임 4 / 투영 5) / 7 도메인 분포(SEC 0) · FR 커버리지 43/43
+> 담당: plan_db_modeler · 깊이: deep · 총 ENT 19 (영속 9 / 런타임 5 / 투영 5) / 7 도메인 분포(SEC 0) · FR 커버리지 47/47
 > 본 문서는 FR·FN·SC가 요구하는 데이터를 엔티티(ENT)로 확정하고, **영속화 형태(후속숙제 ①)를 v1 권고안으로 결정**하며, 이 앱의 특성상 큰 비중을 차지하는 **외부 파일 상태(채널·jsonl·자산)를 "소유 엔티티가 아닌 투영(projection)"으로 명확히 경계**짓는다. FR 전수 커버리지를 검증한다.
 
 ---
@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04`(FR 43/NFR 22)·`05`(FN 53)·`07`(SC 22)가 요구하는 데이터를 엔티티로 영속화하고, `00_meeting_brief` §4 도메인 모델(SessionProfile·Session·Channel·TokenUsage)을 구체 스키마로 확정한다.
+본 문서는 `04`(FR 47/NFR 22)·`05`(FN 57)·`07`(SC 24)가 요구하는 데이터를 엔티티로 영속화하고, `00_meeting_brief` §4 도메인 모델(SessionProfile·Session·Channel·TokenUsage)을 구체 스키마로 확정한다.
 
 - **정의하는 것**: 엔티티(ENT)·컬럼·타입·제약·관계·인덱스 방향 / **영속화 형태 결정(JSON vs SQLite, 후속숙제 ①)** / 영속·런타임·투영 3분류 경계 / 파일 레이아웃·원자적 저장(NFR-011) / FR 전수 커버리지.
 - **정의하지 않는 것(경계)**: 08(REST/DTO)은 서버 부재로 제외·in-proc 계약은 10 / 화면 배치=07 / VT 파서·렌더 성능·아키텍처=10 / 일정=12.
@@ -46,8 +46,8 @@
 |---|---|---|---|---|---|
 | ENT-001 | screen_buffer | TRM | [R] | FR-003·004·005·010 | SC-08 |
 | ENT-002 | scrollback_buffer | TRM | [R] | FR-004·007 | SC-08 |
-| ENT-003 | terminal_tab | TRM | [R] | FR-006·008 | SC-07·10 |
-| ENT-004 | session (runtime) | SES | [R] | FR-001·002·009·011·014·015·016·017·018·023·039 | SC-08·11·12·04 |
+| ENT-003 | terminal_tab | TRM | [R] | FR-006·008·044·046 | SC-07·10·23 |
+| ENT-004 | session (runtime) | SES | [R] | FR-001·002·009·011·014·015·016·017·018·023·039·045·046·047 | SC-08·11·12·04·07·23·24 |
 | ENT-005 | session_profile | PRF | [P] | FR-011·012·013·018·019·020·021·022·023·043 | SC-14·15·03 |
 | ENT-006 | profile_init_command | PRF | [P] | FR-012 | SC-15 |
 | ENT-007 | profile_inject_skill | PRF | [P] | FR-019·027 | SC-15·19 |
@@ -62,8 +62,9 @@
 | ENT-016 | last_layout | SYS | [P] | FR-040·043 | SC-03·01 |
 | ENT-017 | last_layout_entry | SYS | [P] | FR-043 | SC-03 |
 | ENT-018 | diagnostics_log_entry | SYS | [P] | FR-016(NFR-022) | SC-06·11 |
+| ENT-019 | output_capture_buffer | SES | [R] | FR-047 | SC-24 |
 
-> 분포: **영속[P] 9** (005·006·007·008·015·016·017·018 = 8 + 캐시[C] 013 = 실질 영속 9) · **런타임[R] 4** (001·002·003·004) · **투영[X] 5** (009·010·011·012·014). 도메인: TRM 3 · SES 1 · PRF 4 · IPC 3 · OBS 2 · AST 1 · SYS 4 · **SEC 0**(횡단 정책 → AppSettings·Session에 데이터 위임).
+> 분포: **영속[P] 9** (005·006·007·008·015·016·017·018 = 8 + 캐시[C] 013 = 실질 영속 9) · **런타임[R] 5** (001·002·003·004·019) · **투영[X] 5** (009·010·011·012·014). 도메인: TRM 3 · SES 2 · PRF 4 · IPC 3 · OBS 2 · AST 1 · SYS 4 · **SEC 0**(횡단 정책 → AppSettings·Session에 데이터 위임). (v1.1 델타: ENT-004.display_name · ENT-019 캡처 버퍼)
 
 ### 1-2. 동적 스키마 핵심 (한눈)
 
@@ -244,7 +245,7 @@ erDiagram
         string title "as label"
         bool is_active
         int tab_order
-        json pane_layout "nullable FR-008 Could"
+        json pane_layout "nullable FR-008·044"
     }
 ```
 
@@ -344,7 +345,7 @@ erDiagram
 
 #### [ENT-003] terminal_tab          (도메인: TRM · [R])
 - 설명: 탭↔세션 바인딩·활성 여부·분할 레이아웃. v1은 세션당 1탭(단일 pane→탭, C8); 분할은 Could.
-- 소급 FR: FR-006·008 / 구현 FN: FN-TRM-08·11 / 소비 SC: SC-07·10
+- 소급 FR: FR-006·008·044 / 구현 FN: FN-TRM-08·11·14 / 소비 SC: SC-07·10
 - 복원 시엔 ENT-017(last_layout_entry)로 투영-저장(런타임 자체는 비영속).
 
 | 컬럼 | 타입 | 제약 | 설명 |
@@ -354,13 +355,13 @@ erDiagram
 | title | string | — | 탭 라벨(as) |
 | is_active | bool | DEFAULT false | 활성 탭(=활성 세션 명시) |
 | tab_order | int | — | 정렬 |
-| pane_layout | json | nullable | 분할(FR-008, 후속) |
+| pane_layout | json | nullable | 타일 분할·크기조정(FR-008·044) |
 
 ### 4-2. SES — 세션 런타임 [R]
 
 #### [ENT-004] session          (도메인: SES · [R] 런타임 ★핵심 런타임)
 - 설명: 프로파일로 기동된 **런타임 세션**. ConPTY 핸들·pid·as·상태를 보유. **비영속**(프로세스라 앱 재시작 시 소멸 → FR-043은 프로파일 기반 재기동으로 대체).
-- 소급 FR: FR-001·002·009·011·014·015·016·017·018·023·039 / 구현 FN: FN-TRM-01·02·03·12·SES-01~10·SEC-03 / 소비 SC: SC-08·11·12·04·07
+- 소급 FR: FR-001·002·009·011·014·015·016·017·018·023·039·045·046·047 / 구현 FN: FN-TRM-01·02·03·12·15·16·SES-01~11·SEC-03 / 소비 SC: SC-08·11·12·04·07·23·24
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |---|---|---|---|
@@ -369,6 +370,7 @@ erDiagram
 | conpty_handle | handle | — | ConPTY 핸들(비영속) |
 | pid | int | — | OS 프로세스 ID |
 | as | string | — | IPC 식별자(프로파일 as에서 전파 FR-023) |
+| display_name | string | nullable | 표시명(FR-046, as와 분리·런타임 편집, 미지정 시 Terminal N 기본) |
 | state | enum | CHECK(starting/running/exited/error) | 런타임 상태(FR-016) |
 | cols | int | — | 열(리사이즈 FR-007) |
 | rows | int | — | 행 |
@@ -376,6 +378,19 @@ erDiagram
 | started_at | timestamp | — | 기동 시각 |
 
 - 데이터 특성: 동시 ≥8(NFR-012), 상태머신, 크래시 격리(NFR-009). 영속 0.
+
+#### [ENT-019] output_capture_buffer          (도메인: SES · [R] 런타임)
+- 설명: 세션 간 출력 라우팅용 앱 캡처 버퍼. A 세션 출력을 수집·편집(가공)한 뒤 대상 세션 입력으로 주입하는 중간 버퍼. **비영속**(런타임).
+- 소급 FR: FR-047 / 구현 FN: FN-SES-11 / 소비 SC: SC-24
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| id | guid | PK (런타임) | 버퍼 ID |
+| source_as | string | — | 출처 세션 as |
+| content | text | 편집 가능 | 캡처 원문(사용자 가공) |
+| captured_at | timestamp | — | 캡처 시각 |
+
+- 데이터 특성: 인메모리, 사용자 편집. 영속 0. 대상 주입은 세션(ENT-004) 입력으로.
 
 ### 4-3. PRF — 세션 프로파일 [P] (중심 애그리거트)
 
@@ -583,7 +598,7 @@ erDiagram
 | **문서-애그리거트 임베드(비정규화)** | ENT-005 + 006·007·008 | NFR-011 원자성 · FR-020 재사용 | 애그리거트 단위 원자 저장·조인 제거 ↔ 부분 갱신 시 전체 재기록(소수라 무해) |
 | **투영(projection) 엔티티** | ENT-009·010·011·012·014 | C4·C6·NFR-017 재구현 금지 | 재구현·중복 저장 제거·단일 진실원본 ↔ 외부 포맷 변경/부재에 방어적 파싱 필요(NFR-020) |
 | **파생 캐시 + 증분 커서** | ENT-013 | NFR-005 증분 파싱 · FR-031 | 재파싱 회피(성능) ↔ 캐시 staleness(커서·재계산으로 관리) |
-| **JSONB/유연 컬럼** | ENT-003.pane_layout · ENT-015.risk_patterns | FR-008 후속 · 후속 ⑧ 미확정 | 스키마 확정 지연 흡수 ↔ 질의성 저하(소량이라 무해) |
+| **JSONB/유연 컬럼** | ENT-003.pane_layout · ENT-015.risk_patterns | FR-008·044 분할 레이아웃 · 후속 ⑧ 미확정 | 스키마 확정 지연 흡수 ↔ 질의성 저하(소량이라 무해) |
 | **audit/history(append-only)** | ENT-018 | NFR-022 진단 | 사후 추적성 ↔ 무한 증가 → 회전/보존 정책 필요(§8-3) |
 | **싱글턴(CHECK=1)** | ENT-015·016 | 설정/직전-레이아웃 유일 | 단순·경쟁 없음(단일 유저 C7) |
 | **self-referential 트리** | ENT-014 | FR-033 트리 브라우저 | 재귀 탐색 자연 표현 ↔ 깊은 트리 lazy-load |
@@ -615,6 +630,7 @@ erDiagram
 [REL-16] ENT-017 <-> ENT-005 | N:1 | FK 위치: ENT-017.profile_id | 무결성: RESTRICT/손상 플래그(삭제 시 corrupt=true, SC-03 비활성)
 [REL-17] ENT-014 <-> ENT-014 | 1:N | FK 위치: ENT-014.parent_path | 무결성: 트리(OS 소유)
 [REL-18] ENT-004 <-> ENT-018 | 1:N | 참조: ENT-018.session_as | 무결성: 없음(로그는 세션 소멸 후에도 보존)
+[REL-19] ENT-004 <-> ENT-019 | 1:0..N | by source_as (세션 출력 → 캡처 버퍼) | 무결성: 런타임, 소스 세션 소멸 무관(버퍼 잔존)
 ```
 
 ### 6-2. 제약 (CON)
@@ -725,12 +741,12 @@ erDiagram
 
 ### 9-1. 총계·분포
 
-- **ENT 총 18** — 도메인: TRM 3 · SES 1 · PRF 4 · IPC 3 · OBS 2 · AST 1 · SYS 4 · SEC 0.
-- **영속 분류**: [P] 영속 8 + [C] 캐시 1 = **실질 영속 9** · [R] 런타임 4 · [X] 투영 5.
-- **관계 총 18(REL)** — 1:1 3 · 1:N 11 · N:M 1(중간=ENT-008) · N:? 논리조인 3.
+- **ENT 총 19** — 도메인: TRM 3 · SES 2 · PRF 4 · IPC 3 · OBS 2 · AST 1 · SYS 4 · SEC 0.
+- **영속 분류**: [P] 영속 8 + [C] 캐시 1 = **실질 영속 9** · [R] 런타임 5 · [X] 투영 5.
+- **관계 총 19(REL)** — 1:1 3 · 1:N 11 · N:M 1(중간=ENT-008) · N:? 논리조인 4(REL-19 추가).
 - **핵심 인사이트**: 앱이 **스키마를 소유하는 영속 엔티티는 9개뿐**이며, 그중 중심은 SessionProfile 애그리거트. 나머지 데이터 비중(채널·jsonl·자산)은 전부 외부 소유 **투영**이다.
 
-### 9-2. FR 커버리지 확인 (★불변식 — 43/43, 미커버 0)
+### 9-2. FR 커버리지 확인 (★불변식 — 47/47, 미커버 0)
 
 | FR | ENT | | FR | ENT |
 |---|---|---|---|---|
@@ -755,9 +771,11 @@ erDiagram
 | FR-019 | 005·006·007·008 | | FR-041 | 015(update cache)◦ |
 | FR-020 | 005[P] | | FR-042 | 015[P] |
 | FR-021 | 005[P] | | FR-043 | 016·017·005 |
-| FR-022 | 005 | | | |
+| FR-022 | 005 | | FR-044 | 003(pane_layout) |
+| | | | FR-045 | 004[R] |
+| FR-046 | 003·004(display_name) | | FR-047 | 019·004 |
 
-> **미커버 FR = 0 (43/43)** ✅ 불변식 충족.
+> **미커버 FR = 0 (47/47)** ✅ 불변식 충족.
 > ◦ **데이터-경량 FR(5건)**: FR-037(가드=정책·런타임 인터셉트, 패턴목록만 ENT-015에 영속)·FR-038(포트0=집행·표기)·FR-039(소유범위=런타임 집행, owned 플래그)·FR-040(셸 조합=UI, 복원가능분만 ENT-016)·FR-041(ClickOnce=배포 인프라 외부, 업데이트 캐시만 ENT-015). 각각 ≥1 ENT 데이터 접점을 가지되 본질은 정책/UI/배포임을 명시.
 
 ### 9-3. 고아 ENT 점검
@@ -778,21 +796,21 @@ erDiagram
 | SC-08 | 001·002·004 | SC-20 | 012·013 |
 | SC-09 | 001 | SC-21 | 014 |
 | SC-10 | 003 | SC-22 | 014 |
-| SC-11 | 004·013·018 | | |
-| SC-12 | 004 | | |
+| SC-11 | 004·013·018 | SC-23 | 004·003 |
+| SC-12 | 004 | SC-24 | 019 |
 
-> 22개 SC 전부 ≥1 ENT로 데이터 충족. **미매핑 SC = 0.**
+> 24개 SC 전부 ≥1 ENT로 데이터 충족. **미매핑 SC = 0.**
 
 ### 9-5. 자체 검증 게이트
 
 | 게이트 | 결과 |
 |---|---|
-| FR 전수 커버리지(미커버 FR=0) | ✅ 43/43 |
-| 고아 ENT 0(모든 ENT ≥1 관계) | ✅ 18/18 |
-| SC-ENT 커버(모든 SC ≥1 ENT) | ✅ 22/22 |
+| FR 전수 커버리지(미커버 FR=0) | ✅ 47/47 |
+| 고아 ENT 0(모든 ENT ≥1 관계) | ✅ 19/19 |
+| SC-ENT 커버(모든 SC ≥1 ENT) | ✅ 24/24 |
 | 상위 ID 재번호 0(FR/FN/SC 인용만) | ✅ |
-| ENT 네임스페이스 유일(ENT-001~018) | ✅ 중복 0 |
-| 영속/런타임/투영 경계 명시(외부 스키마 미소유) | ✅ [X] 5·[R] 4 명시 |
+| ENT 네임스페이스 유일(ENT-001~019) | ✅ 중복 0 |
+| 영속/런타임/투영 경계 명시(외부 스키마 미소유) | ✅ [X] 5·[R] 5 명시 |
 | 영속화 형태 결정(후속 ①) | ✅ JSON-first, SQLite-ready(§8-4) |
 
 ---
@@ -801,6 +819,6 @@ erDiagram
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_db_modeler · 깊이: deep · 발번 ID: ENT-001~018 (FR/FN/SC·카테고리는 참조만, 재번호 없음)
-- 입력: `04_requirements.md`(FR 43/NFR 22·후속숙제①) · `05_functions.md`(FN 53) · `07_interfaces.md`(SC 22 표시 데이터) · `00_meeting_brief.md`(도메인 모델) · 규약(plan_doc_skeleton·plan_id_system)
+- 입력: `04_requirements.md`(FR 47/NFR 22·후속숙제①) · `05_functions.md`(FN 57) · `07_interfaces.md`(SC 24 표시 데이터) · `00_meeting_brief.md`(도메인 모델) · 규약(plan_doc_skeleton·plan_id_system)
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md)(추적성 매트릭스 ENT 열 완성 대상) · [`07_interfaces`](./07_interfaces.md)(SC→ENT) · [`10_tech`](./10_tech.md)(SQLite 승격·성능 검증)
 - 미해결·후속: ① 영속화 형태 = **본 문서 §8-4에서 JSON-first 결정**(SQLite 승격 조건 명시) · ④ 채널 1:1 매핑(ENT-009.app_channel_name) · ⑤ 자산 편집 범위(ENT-014) · ⑥ web_monitor(ENT-015.web_monitor_mode) · ⑧ 위험 가드 정책(ENT-015.risk_patterns) → `13_followups` 연계.

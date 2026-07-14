@@ -1,19 +1,13 @@
 <Window x:Class="ControlTowerWin.Shell.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:smvm="clr-namespace:ControlTowerWin.Features.SessionMonitor.ViewModels"
-        xmlns:smv="clr-namespace:ControlTowerWin.Features.SessionMonitor.Views"
         xmlns:etvm="clr-namespace:ControlTowerWin.Features.EmbeddedTerminal.ViewModels"
         xmlns:etv="clr-namespace:ControlTowerWin.Features.EmbeddedTerminal.Views"
-        Title="Control Tower" Height="300" Width="400">
+        Title="Control Tower" Height="600" Width="900">
     <Window.Resources>
-        <!-- VM-First 매핑: SessionListViewModel을 그릴 때 SessionListView 사용 -->
-        <DataTemplate DataType="{x:Type smvm:SessionListViewModel}">
-            <smv:SessionListView/>
-        </DataTemplate>
-        <!-- VM-First 매핑: TerminalViewModel을 그릴 때 TerminalView 사용 -->
-        <DataTemplate DataType="{x:Type etvm:TerminalViewModel}">
-            <etv:TerminalView/>
+        <!-- VM-First 매핑: 세션 관리자 VM을 그릴 때 다중 세션 View 사용 -->
+        <DataTemplate DataType="{x:Type etvm:TerminalSessionsViewModel}">
+            <etv:TerminalSessionsView/>
         </DataTemplate>
     </Window.Resources>
 
@@ -21,25 +15,12 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Text="Control Tower"
-                   HorizontalAlignment="Center" Margin="10" FontSize="32"/>
-      
-        <!-- 가운데 영역: 좌측 세션 목록 + 우측 임베드 터미널 -->
-        <Grid Grid.Row="1" Margin="10,0,10,0">
-          <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="240"/>
-            <ColumnDefinition Width="*"/>
-          </Grid.ColumnDefinitions>
+                   HorizontalAlignment="Center" Margin="10" FontSize="24"/>
 
-          <ContentControl Grid.Column="0" Content="{Binding SessionList}"/>
-          <ContentControl Grid.Column="1" Margin="10,0,0,0" Content="{Binding Terminal}"/>
-        </Grid>
-
-        <!-- Click 핸들러 대신 Command 바인딩 -->
-        <Button Grid.Row="2" Content="New Terminal Window" Margin="10"
-                Command="{Binding NewTerminal.OpenCommand}"/>
+        <!-- 좌측 탭>터미널 트리 + 우측 임베드 터미널(다중, keep-alive) -->
+        <ContentControl Grid.Row="1" Margin="10,0,10,10" Content="{Binding Sessions}"/>
     </Grid>
 </Window>

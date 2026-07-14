@@ -23,15 +23,15 @@
 | 01 | [`01_overview`](./01_overview.md) | 제품 개요·정체성·핵심컨셉·범위·성공기준 | 합성 | 5축·10제약 |
 | 02 | [`02_market`](./02_market.md) | 시장 분석·경쟁·Build vs Buy | competitor | 조사 13·Build/Buy 8 |
 | 03 | [`03_users`](./03_users.md) | 사용자 유형·페르소나(운영 모드) | user_classifier | UT 5 · P 1 |
-| 04 | [`04_requirements`](./04_requirements.md) | 요구사항 FR/NFR·8카테고리·제약 | requirement_analyzer | **FR 43 · NFR 22** |
-| 05 | [`05_functions`](./05_functions.md) | 기능정의 FN·추적성 매트릭스 | function_specifier | **FN 53** (FR 전수 커버) |
-| 06 | [`06_behaviors`](./06_behaviors.md) | 행동 시나리오·Journey Map | behavior_designer | BS 22 · JM 5 · 엣지 15 |
-| 07 | [`07_interfaces`](./07_interfaces.md) | IA·화면 SC·흐름·UX | interface_designer | **SC 22** (FR 커버 43/43) |
+| 04 | [`04_requirements`](./04_requirements.md) | 요구사항 FR/NFR·8카테고리·제약 | requirement_analyzer | **FR 47 · NFR 22** |
+| 05 | [`05_functions`](./05_functions.md) | 기능정의 FN·추적성 매트릭스 | function_specifier | **FN 57** (FR 전수 커버) |
+| 06 | [`06_behaviors`](./06_behaviors.md) | 행동 시나리오·Journey Map | behavior_designer | BS 24 · JM 5 · 엣지 15 |
+| 07 | [`07_interfaces`](./07_interfaces.md) | IA·화면 SC·흐름·UX | interface_designer | **SC 24** (FR 커버 47/47) |
 | 08 | — (제외) | REST/DTO — 로컬 데스크톱, 서버 API 없음 | (excluded) | in-proc 계약은 10 |
-| 09 | [`09_database`](./09_database.md) | 데이터 모델·ERD·ENT·영속화 | db_modeler | **ENT 18** (영속 9/투영 5/런타임 4) |
+| 09 | [`09_database`](./09_database.md) | 데이터 모델·ERD·ENT·영속화 | db_modeler | **ENT 19** (영속 9/투영 5/런타임 5) |
 | 10 | [`10_tech`](./10_tech.md) | 기술 스택·아키텍처·리스크·PoC | tech_researcher | **RISK 10** · NFR 22/22 |
 | 11 | [`11_test`](./11_test.md) | 테스트·QA 전략·품질 게이트 | test_strategist | TC 131 · 게이트 9 |
-| 12 | [`12_roadmap`](./12_roadmap.md) | 실행 로드맵·레이어·일정 | roadmap_planner | 5단계 · FR 매핑 43/43 |
+| 12 | [`12_roadmap`](./12_roadmap.md) | 실행 로드맵·레이어·일정 | roadmap_planner | 5단계 · FR 매핑 47/47 |
 | 13 | [`13_followups`](./13_followups.md) | 후속 숙제·운영 사전확인 | 합성 | 숙제 8 · 운영 5 |
 
 > **08 제외 근거**: 본 제품은 로컬 데스크톱으로 REST 백엔드가 없다(수신 포트 0). 통합 계약(ConPTY interop·IPC 파일·jsonl 스키마)은 10 tech가 다룬다.
@@ -51,11 +51,11 @@
 
 ## 요약 지표
 
-- **식별자 총계**: FR 43 · NFR 22 · FN 53 · UT 5 · P 1 · BS 22 · JM 5 · SC 22 · ENT 18 · RISK 10 · 공통 카테고리 8(TRM·SES·PRF·IPC·OBS·AST·SEC·SYS)
-- **MoSCoW(FR)**: Must 30 · Should 11 · Could 2
+- **식별자 총계**: FR 47 · NFR 22 · FN 57 · UT 5 · P 1 · BS 24 · JM 5 · SC 24 · ENT 19 · RISK 10 · 공통 카테고리 8(TRM·SES·PRF·IPC·OBS·AST·SEC·SYS)
+- **MoSCoW(FR)**: Must 30 · Should 16 · Could 1
 - **레이어 로드맵**: P0(압축 PoC) → L0(터미널) → L1(세션·프로파일=MVP) → L2(IPC) → L3(관측·자산) + 횡단(SEC·SYS)
 - **핵심 결정**: **EasyWindowsTerminalControl(공식 WT 렌더러 임베드, INTEGRATE/BUY, MIT)** · self-build는 폴백 · JSON-first 영속 · IPC 재사용(REUSE)
-- **무결성**: FR 전수 커버리지 FN/SC/ENT/로드맵 **43/43** · 고아 참조 0 · 중복 ID 0
+- **무결성**: FR 전수 커버리지 FN/SC/ENT/로드맵 **47/47** · 고아 참조 0 · 중복 ID 0 (v1.1 델타: FR-046·047)
 
 ---
 
@@ -76,6 +76,9 @@
 | FR-008 | TRM-11 | 10 | 003 |
 | FR-009 | TRM-12 | 08 | 004 |
 | FR-010 | TRM-13 | 09 | 001 |
+| FR-044 | TRM-14 | 10 | 003 |
+| FR-045 | TRM-15 | 07·08 | 004 |
+| FR-046 | TRM-16 | 07·23 | 003·004 |
 
 ### SES — 세션 제어 (L1)
 | FR | FN | SC | ENT |
@@ -88,6 +91,7 @@
 | FR-016 | SES-07·08 | 11·06 | 004·018 |
 | FR-017 | SES-09 | 11 | 004 |
 | FR-018 | SES-10 | 11·03 | 005·004 |
+| FR-047 | SES-11 | 24 | 019·004 |
 
 ### PRF — 프로파일 (L1)
 | FR | FN | SC | ENT |
@@ -134,7 +138,7 @@
 | FR-042 | SYS-03 | 02 | 015 |
 | FR-043 | SYS-04 | 03 | 016·017·005 |
 
-> **매트릭스 무결성**: 43개 FR 전부가 ≥1 FN·≥1 SC·≥1 ENT로 매핑됨(미커버 0). NFR-only 실현 기능 FN-SEC-04(NFR-008)·FN-SYS-05(NFR-022)는 FR 소급이 아니라 별도(05 §11-3).
+> **매트릭스 무결성**: 47개 FR 전부가 ≥1 FN·≥1 SC·≥1 ENT로 매핑됨(미커버 0). NFR-only 실현 기능 FN-SEC-04(NFR-008)·FN-SYS-05(NFR-022)는 FR 소급이 아니라 별도(05 §11-3).
 
 ---
 
