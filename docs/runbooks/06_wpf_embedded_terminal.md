@@ -6,8 +6,9 @@
 진짜 터미널(ConPTY 기반)을 WPF 영역에 임베드한다.
 
 - 이번 런북(06): 라이브러리 PoC 검증 + **최소 임베드**(pwsh 렌더 + 사람 타이핑)까지
-- 다음(06b): 앱에서 프로그램적 **명령 주입** + **출력 가로채기/로깅**
-- 다음(07): 임베드 세션 **종료/수명 관리**
+- 다음(07): **레거시 정리 + 탭>터미널 다중 임베드 + pane 분할**
+- 다음(08): 앱에서 프로그램적 **명령 주입** + **출력 가로채기/로깅**
+- 다음(09): 임베드 세션 **종료/수명 관리**
 
 > 본 런북은 **실제로 구현·검증한 절차를 그대로 기록**한 것이다. 특히 "빌드는 되는데 터미널이 검정"이 되는
 > native 배포 함정을 [트러블슈팅](#트러블슈팅)에서 상세히 다룬다 — 이게 이번 작업의 핵심 교훈이다.
@@ -50,7 +51,7 @@ SessionMonitor (기능 1)        EmbeddedTerminal (이번 기능, 별개)
 ```
 사람 타이핑 ─▶ EasyTerminalControl ─▶ conpty.dll ─▶ OpenConsole.exe ─▶ powershell.exe
 powershell ─출력─▶ OpenConsole ─▶ conpty.dll ─▶ Microsoft.Terminal.Control(렌더) ─▶ 화면
-            (06b: 앱이 TermPTY.WriteToTerm로 같은 입력 경로에 명령 주입)
+            (08: 앱이 TermPTY.WriteToTerm로 같은 입력 경로에 명령 주입)
 ```
 
 - **주의(beta 의존)**: 이 컨트롤은 아직 공개 패키징되지 않은 Windows Terminal의 beta 패키지
@@ -193,7 +194,7 @@ dotnet build ControlTowerWin.csproj
 - 컨트롤 정식 타입은 **`EasyWindowsTerminalControl.EasyTerminalControl`** (패키지명과 클래스명이 다르다).
   XmlnsDefinition URI가 없으므로 **`clr-namespace:...;assembly=...`** 형식으로 xmlns를 건다.
 - `StartupCommandLine` — 띄울 콘솔 앱. 기본값도 `"powershell.exe"`. `pwsh.exe`·`cmd.exe`·`claude` 등으로 교체 가능.
-  (06b에서 VM 바인딩으로 끌어올릴 수 있다.)
+  (08에서 VM 바인딩으로 끌어올릴 수 있다.)
 
 `Features/EmbeddedTerminal/Views/TerminalView.xaml.cs` (코드비하인드 — 최소)
 
@@ -222,7 +223,7 @@ namespace ControlTowerWin.Features.EmbeddedTerminal.ViewModels;
 /// <summary>
 /// 임베드 터미널 패널의 ViewModel.
 /// 06 단계에서는 View(EasyTerminalControl) 호스팅을 위한 VM-First 앵커 역할만 한다.
-/// 프로그램적 명령 주입(WriteToTerm)·출력 가로채기는 Runbook 06b에서 이 VM에 추가한다.
+/// 프로그램적 명령 주입(WriteToTerm)·출력 가로채기는 Runbook 08에서 이 VM에 추가한다.
 /// </summary>
 public class TerminalViewModel : ViewModelBase
 {
@@ -230,7 +231,7 @@ public class TerminalViewModel : ViewModelBase
 ```
 
 > 06 단계 VM은 비어 있다 — Shell이 `DataTemplate`로 View를 찾게 하는 **앵커**다.
-> `Models/Interfaces/Services`는 만들지 않는다(점진적 승격). 주입 계약(`Interfaces/`)은 06b에서 도입한다.
+> `Models/Interfaces/Services`는 만들지 않는다(점진적 승격). 주입 계약(`Interfaces/`)은 08에서 도입한다.
 
 ---
 
@@ -402,10 +403,11 @@ dotnet build ControlTowerWin.csproj
 
 ## 다음 단계
 
-- **06b**: `TermPTY.WriteToTerm`로 앱→터미널 **명령 주입**, `InterceptOutputToUITerminal`/
+- **07**: **레거시 정리(SessionMonitor·TerminalLauncher 폐기) + 탭>터미널 다중 임베드 + pane 분할**(좌측 트리 + 우측 keep-alive 타일).
+- **08**: `TermPTY.WriteToTerm`로 앱→터미널 **명령 주입**, `InterceptOutputToUITerminal`/
   `LogConPTYOutput`+`GetConsoleText()`로 **출력 가로채기/로깅**. 이때 주입 계약을
   `Features/EmbeddedTerminal/Interfaces/`에 도입([interfaces.md](../guides/convention/interfaces.md)).
-- **07**: 임베드 세션 **종료/수명** 관리(`RestartTerm`/`DisconnectConPTYTerm`), 별건으로 Runbook 05
+- **09**: 임베드 세션 **종료/수명** 관리(`RestartTerm`/`DisconnectConPTYTerm`), 별건으로 Runbook 05
   컨텍스트 메뉴 `종료`(외부 프로세스 Kill) 연결.
 
 ---

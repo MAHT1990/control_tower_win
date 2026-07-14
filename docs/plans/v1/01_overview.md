@@ -84,5 +84,5 @@
 ## 문서 메타
 
 - 버전: v1.0 / 생성일: 2026-07-01 / 담당: orchestrator(합성)
-- 종합 지표: FR 43 · NFR 22 · FN 53 · UT 5/P 1 · BS 22/JM 5 · SC 22 · ENT 18 · RISK 10 · 카테고리 8
+- 종합 지표: FR 47 · NFR 22 · FN 57 · UT 5/P 1 · BS 24/JM 5 · SC 24 · ENT 19 · RISK 10 · 카테고리 8
 - 관련 문서: 전체 14문서 → [`INDEX`](./INDEX.md)

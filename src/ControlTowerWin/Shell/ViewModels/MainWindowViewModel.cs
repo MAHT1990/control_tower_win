@@ -1,19 +1,11 @@
-﻿using ControlTowerWin.Features.SessionMonitor.Services;
-using ControlTowerWin.Features.SessionMonitor.ViewModels;
-using ControlTowerWin.Features.TerminalLauncher.Services;
-using ControlTowerWin.Features.TerminalLauncher.ViewModels;
+﻿using ControlTowerWin.Features.EmbeddedTerminal.ViewModels;
 using ControlTowerWin.Shared.Core;
 
 namespace ControlTowerWin.Shell.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    public SessionListViewModel SessionList { get; }
-    public NewTerminalViewModel NewTerminal { get; }
+    public TerminalSessionsViewModel Sessions { get; }
 
-    public MainWindowViewModel()
-    {
-        SessionList = new SessionListViewModel(new ProcessTracker());
-        NewTerminal = new NewTerminalViewModel(new TerminalLauncher());
-    }
+    public MainWindowViewModel() => Sessions = new TerminalSessionsViewModel();
 }

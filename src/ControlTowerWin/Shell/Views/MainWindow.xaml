@@ -1,13 +1,13 @@
 <Window x:Class="ControlTowerWin.Shell.Views.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:smvm="clr-namespace:ControlTowerWin.Features.SessionMonitor.ViewModels"
-        xmlns:smv="clr-namespace:ControlTowerWin.Features.SessionMonitor.Views"
-        Title="Control Tower" Height="300" Width="400">
+        xmlns:etvm="clr-namespace:ControlTowerWin.Features.EmbeddedTerminal.ViewModels"
+        xmlns:etv="clr-namespace:ControlTowerWin.Features.EmbeddedTerminal.Views"
+        Title="Control Tower" Height="600" Width="900">
     <Window.Resources>
-        <!-- VM-First 매핑: SessionListViewModel을 그릴 때 SessionListView 사용 -->
-        <DataTemplate DataType="{x:Type smvm:SessionListViewModel}">
-            <smv:SessionListView/>
+        <!-- VM-First 매핑: 세션 관리자 VM을 그릴 때 다중 세션 View 사용 -->
+        <DataTemplate DataType="{x:Type etvm:TerminalSessionsViewModel}">
+            <etv:TerminalSessionsView/>
         </DataTemplate>
     </Window.Resources>
 
@@ -15,17 +15,12 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <TextBlock Grid.Row="0" Text="Control Tower"
-                   HorizontalAlignment="Center" Margin="10" FontSize="32"/>
+                   HorizontalAlignment="Center" Margin="10" FontSize="24"/>
 
-        <!-- 기능 View를 영역에 주입 (ContentControl + DataTemplate) -->
-        <ContentControl Grid.Row="1" Margin="10,0,10,0" Content="{Binding SessionList}"/>
-
-        <!-- Click 핸들러 대신 Command 바인딩 -->
-        <Button Grid.Row="2" Content="New Terminal Window" Margin="10"
-                Command="{Binding NewTerminal.OpenCommand}"/>
+        <!-- 좌측 탭>터미널 트리 + 우측 임베드 터미널(다중, keep-alive) -->
+        <ContentControl Grid.Row="1" Margin="10,0,10,10" Content="{Binding Sessions}"/>
     </Grid>
 </Window>
