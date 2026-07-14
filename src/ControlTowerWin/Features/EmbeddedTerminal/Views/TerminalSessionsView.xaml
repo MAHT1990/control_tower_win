@@ -2,7 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="clr-namespace:ControlTowerWin.Features.EmbeddedTerminal.ViewModels"
-             xmlns:local="clr-namespace:ControlTowerWin.Features.EmbeddedTerminal.Views">
+             xmlns:local="clr-namespace:ControlTowerWin.Features.EmbeddedTerminal.Views"
+             xmlns:ctrl="clr-namespace:ControlTowerWin.Shared.Controls">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVis"/>
 
@@ -147,7 +148,7 @@
                                   ItemTemplate="{StaticResource TerminalPane}">
                         <ItemsControl.ItemsPanel>
                             <ItemsPanelTemplate>
-                                <UniformGrid/>
+                                <ctrl:ResizableTilePanel/>
                             </ItemsPanelTemplate>
                         </ItemsControl.ItemsPanel>
                     </ItemsControl>
