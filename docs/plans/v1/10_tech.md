@@ -1,6 +1,6 @@
 # 10. 기술 스펙·아키텍처 (Tech Spec & Architecture)
 
-> 담당: plan_tech_researcher · 깊이: deep · 스택 10영역 / RISK 10 / NFR 충족 22/22
+> 담당: plan_tech_researcher · 깊이: deep · 스택 10영역 / RISK 11 / NFR 충족 22/22
 > 본 문서는 04(FR/NFR)·07(SC)·09(ENT)가 요구하는 품질을 실현하는 기술 스택·아키텍처를 확정하고, 기술 리스크(RISK)를 발번하며, 모든 NFR의 충족 수단을 검증한다.
 
 ---
@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 Control Tower v1의 기술 스펙 단일 원천이다. `04_requirements`(FR 47/NFR 22·제약)·`07_interfaces`(SC 24)·도메인 모델을 입력으로, "무엇을·왜"를 "어떤 기술로·어떻게"로 확정한다.
+본 문서는 Control Tower v1의 기술 스펙 단일 원천이다. `04_requirements`(FR 48/NFR 22·제약)·`07_interfaces`(SC 24)·도메인 모델을 입력으로, "무엇을·왜"를 "어떤 기술로·어떻게"로 확정한다.
 
 - **정의하는 것**: (a) 영역별 기술 스택과 근거·대안(§3) / (b) Feature×Layer 아키텍처(§4) / (c) 대표 데이터 흐름(§5) / (d) 외부 라이브러리·native 의존(§6) / (e) 기술 리스크 RISK-### + PoC(§7) / (f) 배포 토폴로지·비용(§8) / (g) NFR 22종 전수 충족 검증(§9).
 - **정의하지 않는 것(경계)**: FR/NFR·SC·ENT는 참조 전용(재번호 금지). 프로파일 영속 스키마·ERD 최종 형태는 09 소관. REST/DTO는 08 소관이나 서버·수신 포트가 없어(NFR-006) in-proc 계약으로 축소된다.
@@ -66,6 +66,7 @@
 | RISK-008 | IPC 파일 계약 결합 | M | M | 중 | FR-024·025·029 / NFR-010·017 | ○ |
 | RISK-009 | 상태 영속 원자성·손상 | L | M | 하 | FR-020·035 / NFR-011 | — |
 | RISK-010 | ClickOnce + native 의존 배포 호환(self-contained 동봉·서명) | M | M | 중 | FR-041 / NFR-021·019 | ○ |
+| RISK-011 | 런타임 폰트 적용 경로(write-only Theme setter·null-theme no-op) | M | M | 중 | FR-048 / NFR-018·013 | ● |
 
 > 임계경로 = **RISK-001(native 배포)**. 통합 엔진의 native 부품이 출력 폴더에 복사되지 않으면 빌드는 성공하나 터미널이 빈 화면으로 뜬다 — 유일한 substrate 저해 요인이므로 L0 착수 시 최우선 확인한다.
 
@@ -101,6 +102,7 @@
   - 렌더러 = `Microsoft.Terminal.Control`(native) + `Microsoft.Terminal.Wpf` — 공식 Windows Terminal 렌더러. VT 파싱·셀 렌더가 컨트롤 내장.
   - substrate = `CI.Microsoft.Windows.Console.ConPTY`(conpty.dll + OpenConsole.exe).
 - 근거: self-build로 세 영역(substrate·파서·렌더러)을 각각 만들면 `claude` 같은 풀스크린 TUI 렌더가 별도 대공사다. 하나의 NuGet 컨트롤이 공식 백엔드로 세 영역을 동시에 충족하므로, 파싱·렌더 버그 리스크를 공식 렌더러 신뢰로 제거하고 출시 속도를 확보한다(통제력이 필요한 앱-소유·주입은 TS-04 API로 유지).
+- **런타임 폰트 적용(FR-048)**: `FontFamilyWhenSettingTheme`/`FontSizeWhenSettingTheme` 설정 후 **write-only `Theme` 프로퍼티 재대입**으로 트리거된다(내부 private `SetTheme`가 `Terminal.SetTheme(theme, family, size)` 호출 — README의 "SetTheme 직접 호출"은 WPF 컨트롤에서 불가). Theme 값이 null이면 no-op이므로 앱이 non-null 기본 `TerminalTheme`(색 포함)를 보유·재대입해야 폰트가 반영된다(RISK-011). 폰트 변경은 렌더러 리테마만 수행 → **ConPTY 세션 유지(재시작 불요)**. 줄간격/셀 spacing은 `Microsoft.Terminal.Wpf` 표면 미노출 → v1 미대상(후속 ⑨).
 - 고려: native 배포 함정(RISK-001)·beta CI 의존 드리프트(RISK-003)·airspace HwndHost 제약(RISK-002) — §7 상술.
 
 ### [TS-03] Terminal Substrate (fallback) — MS GUIConsole.ConPTY — BUILD(폴백)
@@ -114,6 +116,7 @@
 - 근거: 토큰 집계 원천은 jsonl(C6)이며, 출력 캡처는 진단·자동반응용 보조 관측 채널로 쓴다.
 - **프롬프트-ready 검출**(초기명령 순차 주입·트리거 FR-012·027): 초기명령을 순차 주입하려면 각 명령 후 셸/claude가 다음 프롬프트를 받을 준비가 됐는지 **출력 스트림으로 판단**해야 한다(무작정 연달아 쏘면 유실·오정렬). 최소 1규약 채택 — (a) **출력 안정 타임아웃**(마지막 출력 후 N ms 무변동 = ready, v1 기본 규약) 또는 (b) **프롬프트 마커/OSC 감지**(셸 프롬프트 정규식 또는 OSC 133 semantic-prompt 시퀀스). v1 기본은 (a), 정밀도 필요 시 (b)로 승격. §7 PoC 검증 항목(RISK-004 확장).
 - 고려: 캡처 델리게이트 호출 스레드·주입-타이핑 충돌 여부(RISK-004). VM→컨트롤 TermPTY 접근은 코드비하인드 주입 또는 attached behavior로 MVVM 경계를 지킨다.
+- **폰트 적용 계약(FR-048)**: `ApplyFont(family, size)`도 엔진 경계 `ITerminalSession`에 둔다(NFR-018) — TerminalTheme·write-only Theme 함정(TS-02)을 경계 구현 1곳에 캡슐화, 상위 소비자(Settings)는 엔진 타입 불가지.
 
 ### [TS-05] Backend/앱 서비스 — in-proc .NET 서비스 + DI — BUILD
 - 추천: in-proc 서비스 계층(Feature 모듈 내부 Services), DI=`Microsoft.Extensions.DependencyInjection`(+ Generic Host `IHostedService`로 장기 실행 작업·크래시 격리 NFR-009).
@@ -385,8 +388,8 @@ sequenceDiagram
 
 ### [RISK-005] alt-screen/TUI(claude) 렌더 정확도 (하)
 - 영향: FR-005 / NFR-013 · 가능성 L / 영향도 M
-- 내용: alt-screen/claude TUI를 공식 Windows Terminal 렌더러가 렌더한다. 잔여: 폰트 폴백(CJK·이모지·박스드로잉).
-- 완화: `FontFamilyWhenSettingTheme`(기본 Cascadia Code) 확인.
+- 내용: alt-screen/claude TUI를 공식 Windows Terminal 렌더러가 렌더한다. 잔여: 폰트 폴백(CJK·이모지·박스드로잉). 사용자 임의 선택 폰트(FR-048)의 글리프 폴백 불완전 가능성 포함.
+- 완화: `FontFamilyWhenSettingTheme`(기본 Cascadia Code) 확인. FR-048은 monospace 한정 목록으로 제한 + 기본 Cascadia Code 폴백.
 
 ### [RISK-006] 세션 소유·수명·좀비 정리 (중)
 - 영향: FR-015·016·017·018·039 / NFR-009·012 · 가능성 M / 영향도 M
@@ -411,6 +414,12 @@ sequenceDiagram
 - 내용: `conpty.dll`·`OpenConsole.exe`·`Microsoft.Terminal.Control.dll`를 ClickOnce self-contained 산출물에 동봉해야 한다. win-x64 RID·beta CI 어셈블리·서명이 매니페스트에 반영 안 되면 실행/업데이트 실패.
 - 완화: publish 프로파일에 native 2종 + WT 렌더러 포함을 게시 후 실측 · self-contained win-x64 · 코드 서명 · dev/staging/prod 채널 분리.
 - **PoC**: 게시본을 클린 머신에서 실행 → 터미널 렌더 확인.
+
+### [RISK-011] 런타임 폰트 적용 경로 — write-only Theme setter + null-theme no-op (중)
+- 영향: FR-048 / NFR-018·013 · 가능성 M / 영향도 M
+- 내용: WPF 컨트롤의 `SetTheme`가 private라 폰트 재적용의 유일 경로가 `Theme` 프로퍼티 재대입이며, non-null `TerminalTheme`(색 5필드+ColorTable[16]) 보유가 강제된다. 미보유(Theme=null) 시 폰트 변경이 **조용히 무시**된다. Theme getter도 private라 이전 테마값을 되읽을 수 없다.
+- 완화: 엔진 경계 구현(`ITerminalSession.ApplyFont`)이 기본 `TerminalTheme` 상수(Campbell 팔레트)를 보유하고 family/size만 갱신해 재대입. 크기 변경 후 rows/cols 재계산 방어(레이아웃 갱신 1회).
+- **PoC**: 런타임 폰트 변경 후 세션 유지·즉시 반영 확인.
 
 ### 7-11. 압축 PoC 권고 (통합·배포 vertical-slice)
 substrate·파서·렌더가 통합 엔진에 흡수되므로, PoC의 핵심은 통합 + 배포다.
@@ -475,7 +484,7 @@ substrate·파서·렌더가 통합 엔진에 흡수되므로, PoC의 핵심은 
 | NFR-015 터미널 UX 정합 | 사용성 | TS-02 공식 WT 렌더러 = WT 수준 parity 내장(selection/scrollback/focus/24-bit) | RISK-002 |
 | NFR-016 Feature×Layer | 유지보수 | TS-05 모듈러 모놀리스·EmbeddedTerminal 4+1레이어·참조 0 | — |
 | NFR-017 IPC 재구현 금지 | 유지보수 | TS-07 파일 계약 소비만·`IIpcFileContract` 어댑터 | RISK-008 |
-| NFR-018 엔진 교체성 | 유지보수 | TS-04 경계 인터페이스 `ITerminalSession` 1곳 — 엔진↔폴백 교체 격리 | RISK-003 |
+| NFR-018 엔진 교체성 | 유지보수 | TS-04 경계 인터페이스 `ITerminalSession` 1곳 — 엔진↔폴백 교체 격리(ApplyFont 포함) | RISK-003·011 |
 | NFR-019 플랫폼 호환 | 호환성 | TS-01/02 Win11·.NET10 LTS·WPF·EasyWindowsTerminalControl | RISK-001·003·010 |
 | NFR-020 jsonl 포맷 호환 | 호환성 | TS-08 방어적 파싱(미지 필드 무시·손상 skip) | RISK-007 |
 | NFR-021 ClickOnce 호환 | 호환성 | TS-09 ClickOnce(.NET10) + native 자산 동봉·서명 검증 | RISK-010·001 |
@@ -490,14 +499,14 @@ substrate·파서·렌더가 통합 엔진에 흡수되므로, PoC의 핵심은 
 - **영역별 추천 스택**: WPF(.NET10 LTS)+MVVM · **EasyWindowsTerminalControl(INTEGRATE/BUY, MIT) — 공식 WT 렌더러+ConPTY+VT 일체** · TermPTY 주입/캡처 · self-build는 폴백(TS-03) · JSON 원자 저장(09) · skill_ipc_control 소비(REUSE) · 증분 jsonl 파서 · ClickOnce+native 동봉 · 인증 없음(포트 0).
 - **아키텍처 패턴**: 모듈러 모놀리스(Feature×Layer) · EmbeddedTerminal Feature가 EasyTerminalControl 호스팅 · `ITerminalSession` 엔진 경계 · 앱-소유 SessionManager · 컨트롤 소유 파이프 스레드 + 앱 Dispatcher 마샬링.
 - **외부 의존**: 코드 의존 12건(EXT-01~12), 외부 네트워크 SaaS·유료 API 0. 핵심 결합 = 엔진(EXT-01)+native(EXT-02/03)·IPC 계약(EXT-08)·jsonl(EXT-09).
-- **RISK 총수 10** — ★최상 1(RISK-001 native 배포).
+- **RISK 총수 11** — ★최상 1(RISK-001 native 배포).
 - **예상 비용**: ~$0~$40/월(서명 인증서 외 사실상 0, 엔진 MIT).
 - **NFR 충족률 22/22 (100%)** — 미매핑 0.
 
 ## 문서 메타
 
 - 버전: v1.0 / 생성일: 2026-07-01 · 담당: plan_tech_researcher · 깊이: deep
-- 발번 ID: RISK-001~010 (FR/NFR/SC/ENT 재번호 0). TS-##·EXT-##는 문서 내부 라벨.
+- 발번 ID: RISK-001~011 (FR/NFR/SC/ENT 재번호 0). TS-##·EXT-##는 문서 내부 라벨.
 - 입력: `04_requirements`(FR/NFR·제약) · `07_interfaces`(SC·airspace 레이아웃) · 도메인 모델
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`07_interfaces`](./07_interfaces.md) · [`09_database`](./09_database.md) · [`12_roadmap`](./12_roadmap.md)
 

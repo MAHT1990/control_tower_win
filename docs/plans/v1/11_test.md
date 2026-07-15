@@ -1,6 +1,6 @@
 # 11. 테스트·QA 전략 (Test & QA Strategy)
 
-> 담당: plan_test_strategist · 깊이: deep · 테스트 레벨 4(+특수 3트랙) / AC↔TC 133건(활성 132 + 유예 1) · v1 FR AC 전수 커버
+> 담당: plan_test_strategist · 깊이: deep · 테스트 레벨 4(+특수 3트랙) / AC↔TC 136건(활성 135 + 유예 1) · v1 FR AC 전수 커버
 > 본 문서는 04가 freeze한 FR/NFR의 **수용 기준(AC)** 을 검증 가능한 테스트 케이스(TC)로 전개하고, ConPTY 임베드·파일 기반 IPC·WPF 렌더라는 제품 특성에 맞는 품질 게이트를 정의한다.
 
 ---
@@ -9,12 +9,12 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04_requirements`(FR 47·NFR 22·AC)·`05_functions`(FN 57)·`06_behaviors`(BS 24·JM 5·엣지 E1~E15)·`07_interfaces`(SC 24)를 입력으로, **"무엇이 충족되면 통과인가(AC)"를 "어떻게 검증하는가(TC)"로 변환**한다. 검증의 단위는 AC이며, 검증 대상 모든 AC는 ≥1 TC로 매핑된다(AC 전수 커버리지 = 최우선 불변식).
+본 문서는 `04_requirements`(FR 48·NFR 22·AC)·`05_functions`(FN 58)·`06_behaviors`(BS 24·JM 5·엣지 E1~E15)·`07_interfaces`(SC 24)를 입력으로, **"무엇이 충족되면 통과인가(AC)"를 "어떻게 검증하는가(TC)"로 변환**한다. 검증의 단위는 AC이며, 검증 대상 모든 AC는 ≥1 TC로 매핑된다(AC 전수 커버리지 = 최우선 불변식).
 
 - **정의하는 것**: 테스트 전략·피라미드/레벨(§1~2) / ConPTY·TUI·watch의 테스트 난제 대응(§2-5) / BS 기반 시나리오·엣지 회귀(§3) / AC↔TC 전수 매핑(§4) / 품질 지표·머지 차단 게이트(§5) / 테스트 데이터·환경(§6) / CI 파이프라인 게이트 삽입(§7).
 - **정의하지 않는 것(경계)**: FR/NFR·AC=04 / FN=05 / BS·엣지=06 / SC=07 / 렌더 성능 실측 목표치·아키텍처 검증·PoC=10(tech). 본 문서는 10이 확정할 성능 목표를 **게이트 임계로 연계만** 한다.
 - **본 문서는 레지스트리 ID를 발번하지 않는다**: FR/NFR/FN/BS/JM/SC는 참조 전용(재번호 0·고아 참조 0). **TC는 본 문서 내부 라벨**(비레지스트리).
-- **v1 검증 대상 경계**: FR-043(상태 복원·Could)의 "(후속)" AC는 v1 게이트 **제외**(유예 TC로만 기록). 나머지 44 FR의 전 AC + FN 실현 NFR 9종 + 품질 목표 NFR 13종을 검증 대상으로 삼는다.
+- **v1 검증 대상 경계**: FR-043(상태 복원·Could)의 "(후속)" AC는 v1 게이트 **제외**(유예 TC로만 기록). 나머지 47 FR의 전 AC + FN 실현 NFR 9종 + 품질 목표 NFR 13종을 검증 대상으로 삼는다.
 
 ### 0-2. 표기 규칙 (AC·TC 라벨·레벨 약어)
 
@@ -350,6 +350,9 @@ ConPTY 실프로세스·실파일을 사용(모킹 최소화). **Windows CI 러�
 | FR-042/AC1 | 설정 UI | TC-E2E-12 | E2E | 정상 | 핵심 경로/기본값 설정 UI 존재 |
 | FR-042/AC2·3 | 설정 영속·재시작 반영 | TC-INTG-49 | 통합 | 정상 | 설정 영속·재시작 후 반영 |
 | FR-043/AC후속 | 상태 복원(Could) | TC-DEFER-02 | 유예 | 유예 | v1 게이트 제외·재기동 제안 형태(E9 연계) |
+| FR-048/AC1 | monospace 목록·크기 범위 검증 | TC-UNIT-34 | 단위 | 경계 | monospace 열거 필터·6~72 범위 밖 거부 |
+| FR-048/AC3 | 저장 즉시 전 터미널 라이브 재적용 | TC-INTG-59 | 통합 | 정상 | SetTheme 재적용·전 세션 글꼴 갱신·ConPTY 세션 유지(RISK-011) |
+| FR-048/AC2·4 | 원자 영속·재시작 유지·신규 터미널 적용 | TC-INTG-60 | 통합 | 정상 | settings.json temp→rename·재시작 후 유지·신규 세션 적용 |
 
 ### 4-9. NFR — 품질 지표(측정) 매핑
 
@@ -554,6 +557,6 @@ ConPTY 실프로세스·실파일을 사용(모킹 최소화). **Windows CI 러�
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_test_strategist · 깊이: deep
 - 발번 ID: **없음**(TC는 비레지스트리 내부 라벨). FR/NFR/FN/BS/JM/SC는 참조 전용(재번호 0·고아 참조 0).
-- 입력: [`04_requirements`](./04_requirements.md)(FR 47·NFR 22·AC·제약 C1~C10) · [`05_functions`](./05_functions.md)(FN 57) · [`06_behaviors`](./06_behaviors.md)(BS 24·JM 5·엣지 E1~E15) · [`07_interfaces`](./07_interfaces.md)(SC 24·Flow A~F) · 규약(plan_doc_skeleton·plan_id_system)
+- 입력: [`04_requirements`](./04_requirements.md)(FR 48·NFR 22·AC·제약 C1~C10) · [`05_functions`](./05_functions.md)(FN 58) · [`06_behaviors`](./06_behaviors.md)(BS 24·JM 5·엣지 E1~E15) · [`07_interfaces`](./07_interfaces.md)(SC 24·Flow A~F) · 규약(plan_doc_skeleton·plan_id_system)
 - 관련 문서: [`10_tech`](./10_tech.md)(성능 임계 확정·아키텍처 검증·PoC — G7 임계·NFR-018 경계 공유) · [`12_roadmap`](./12_roadmap.md)(게이트 마일스톤 배치)
 - 미해결·후속(→ `13_followups`): 위험 패턴 목록·on/off(⑧ → G3/TC-UNIT-28) · 채널 1:1 매핑 확정(④ → TC-INTG-39) · 상태 복원(FR-043) 유예 해제 시점.

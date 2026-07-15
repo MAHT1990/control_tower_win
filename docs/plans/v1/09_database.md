@@ -1,6 +1,6 @@
 # 09. 데이터베이스 설계 (Database Design — 영속 모델 · ERD · ENT)
 
-> 담당: plan_db_modeler · 깊이: deep · 총 ENT 19 (영속 9 / 런타임 5 / 투영 5) / 7 도메인 분포(SEC 0) · FR 커버리지 47/47
+> 담당: plan_db_modeler · 깊이: deep · 총 ENT 19 (영속 9 / 런타임 5 / 투영 5) / 7 도메인 분포(SEC 0) · FR 커버리지 48/48
 > 본 문서는 FR·FN·SC가 요구하는 데이터를 엔티티(ENT)로 확정하고, **영속화 형태(후속숙제 ①)를 v1 권고안으로 결정**하며, 이 앱의 특성상 큰 비중을 차지하는 **외부 파일 상태(채널·jsonl·자산)를 "소유 엔티티가 아닌 투영(projection)"으로 명확히 경계**짓는다. FR 전수 커버리지를 검증한다.
 
 ---
@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04`(FR 47/NFR 22)·`05`(FN 57)·`07`(SC 24)가 요구하는 데이터를 엔티티로 영속화하고, `00_meeting_brief` §4 도메인 모델(SessionProfile·Session·Channel·TokenUsage)을 구체 스키마로 확정한다.
+본 문서는 `04`(FR 48/NFR 22)·`05`(FN 58)·`07`(SC 24)가 요구하는 데이터를 엔티티로 영속화하고, `00_meeting_brief` §4 도메인 모델(SessionProfile·Session·Channel·TokenUsage)을 구체 스키마로 확정한다.
 
 - **정의하는 것**: 엔티티(ENT)·컬럼·타입·제약·관계·인덱스 방향 / **영속화 형태 결정(JSON vs SQLite, 후속숙제 ①)** / 영속·런타임·투영 3분류 경계 / 파일 레이아웃·원자적 저장(NFR-011) / FR 전수 커버리지.
 - **정의하지 않는 것(경계)**: 08(REST/DTO)은 서버 부재로 제외·in-proc 계약은 10 / 화면 배치=07 / VT 파서·렌더 성능·아키텍처=10 / 일정=12.
@@ -58,7 +58,7 @@
 | ENT-012 | transcript_ref | OBS | [X] | FR-030 | SC-20 |
 | ENT-013 | token_usage_snapshot | OBS | [C] | FR-031·032 | SC-20·11 |
 | ENT-014 | asset_node | AST | [X] | FR-033·034·035·036 | SC-21·22 |
-| ENT-015 | app_settings | SYS | [P] | FR-029·033·037·038·041·042 | SC-02·13·05 |
+| ENT-015 | app_settings | SYS | [P] | FR-029·033·037·038·041·042·048 | SC-02·13·05 |
 | ENT-016 | last_layout | SYS | [P] | FR-040·043 | SC-03·01 |
 | ENT-017 | last_layout_entry | SYS | [P] | FR-043 | SC-03 |
 | ENT-018 | diagnostics_log_entry | SYS | [P] | FR-016(NFR-022) | SC-06·11 |
@@ -538,7 +538,7 @@ erDiagram
 
 #### [ENT-015] app_settings          (도메인: SYS · [P] 영속 싱글턴)
 - 설명: 앱 설정 싱글턴 + 횡단 정책(SEC 위임: 위험 가드 설정·포트 0 표기). ClickOnce 업데이트 캐시(선택).
-- 소급 FR: FR-029·033·037·038·041·042 / 구현 FN: FN-SYS-03·SEC-01·02 / 소비 SC: SC-02·13·05
+- 소급 FR: FR-029·033·037·038·041·042·048 / 구현 FN: FN-SYS-03·SEC-01·02·SYS-06 / 소비 SC: SC-02·13·05
 
 | 컬럼 | 타입 | 제약 | 설명 |
 |---|---|---|---|
@@ -551,6 +551,8 @@ erDiagram
 | risk_patterns | string[] | — | 위험 패턴 목록(후속 ⑧) |
 | web_monitor_mode | enum | nullable | 흡수/병존(후속 ⑥) |
 | last_update_check | timestamp | nullable | ClickOnce 확인 캐시(FR-041, 선택) |
+| terminal_font_family | string | DEFAULT `Cascadia Code` | 터미널 글꼴 종류(monospace 한정, FR-048) |
+| terminal_font_size | int | DEFAULT 12, CHECK(6..72) | 터미널 글꼴 크기 pt(FR-048, CON-13) |
 | schema_version | int | DEFAULT 1 | |
 
 #### [ENT-016] last_layout          (도메인: SYS · [P])
@@ -648,6 +650,7 @@ erDiagram
 [CON-10] 대상: ENT-018.level | CHECK IN(INFO,WARN,ERR) | 레벨 도메인 | SC-06 필터
 [CON-11] 대상: ENT-006.seq | NOT NULL, 프로파일 내 순서 유일 | 실행 순서 결정 | FR-012 순차 주입
 [CON-12] 대상: ENT-008.channel_name | NOT NULL | 채널 참여 대상 | FR-026
+[CON-13] 대상: ENT-015.terminal_font_size | CHECK(6..72) | 글꼴 크기 범위 | FR-048(가독 범위·오입력 방지)
 ```
 
 > **as 충돌(동시 기동) 정책**: `name`·`as`는 설계-시 전역 UNIQUE(CON-01·02)이나, 같은 프로파일을 동시에 여러 번 기동하면 런타임 `Session.as`가 충돌한다 → **as 미지정 시 자동 suffix(예: `tower2#2`) 부여, 또는 중복 기동 거부**로 런타임 IPC 정체성 유일성을 보장한다(FN-PRF-07).
@@ -746,7 +749,7 @@ erDiagram
 - **관계 총 19(REL)** — 1:1 3 · 1:N 11 · N:M 1(중간=ENT-008) · N:? 논리조인 4(REL-19 추가).
 - **핵심 인사이트**: 앱이 **스키마를 소유하는 영속 엔티티는 9개뿐**이며, 그중 중심은 SessionProfile 애그리거트. 나머지 데이터 비중(채널·jsonl·자산)은 전부 외부 소유 **투영**이다.
 
-### 9-2. FR 커버리지 확인 (★불변식 — 47/47, 미커버 0)
+### 9-2. FR 커버리지 확인 (★불변식 — 48/48, 미커버 0)
 
 | FR | ENT | | FR | ENT |
 |---|---|---|---|---|
@@ -774,8 +777,9 @@ erDiagram
 | FR-022 | 005 | | FR-044 | 003(pane_layout) |
 | | | | FR-045 | 004[R] |
 | FR-046 | 003·004(display_name) | | FR-047 | 019·004 |
+| FR-048 | 015(terminal_font_*) | | | |
 
-> **미커버 FR = 0 (47/47)** ✅ 불변식 충족.
+> **미커버 FR = 0 (48/48)** ✅ 불변식 충족.
 > ◦ **데이터-경량 FR(5건)**: FR-037(가드=정책·런타임 인터셉트, 패턴목록만 ENT-015에 영속)·FR-038(포트0=집행·표기)·FR-039(소유범위=런타임 집행, owned 플래그)·FR-040(셸 조합=UI, 복원가능분만 ENT-016)·FR-041(ClickOnce=배포 인프라 외부, 업데이트 캐시만 ENT-015). 각각 ≥1 ENT 데이터 접점을 가지되 본질은 정책/UI/배포임을 명시.
 
 ### 9-3. 고아 ENT 점검
@@ -805,7 +809,7 @@ erDiagram
 
 | 게이트 | 결과 |
 |---|---|
-| FR 전수 커버리지(미커버 FR=0) | ✅ 47/47 |
+| FR 전수 커버리지(미커버 FR=0) | ✅ 48/48 |
 | 고아 ENT 0(모든 ENT ≥1 관계) | ✅ 19/19 |
 | SC-ENT 커버(모든 SC ≥1 ENT) | ✅ 24/24 |
 | 상위 ID 재번호 0(FR/FN/SC 인용만) | ✅ |
@@ -819,6 +823,6 @@ erDiagram
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_db_modeler · 깊이: deep · 발번 ID: ENT-001~018 (FR/FN/SC·카테고리는 참조만, 재번호 없음)
-- 입력: `04_requirements.md`(FR 47/NFR 22·후속숙제①) · `05_functions.md`(FN 57) · `07_interfaces.md`(SC 24 표시 데이터) · `00_meeting_brief.md`(도메인 모델) · 규약(plan_doc_skeleton·plan_id_system)
+- 입력: `04_requirements.md`(FR 48/NFR 22·후속숙제①⑨) · `05_functions.md`(FN 58) · `07_interfaces.md`(SC 24 표시 데이터) · `00_meeting_brief.md`(도메인 모델) · 규약(plan_doc_skeleton·plan_id_system)
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md)(추적성 매트릭스 ENT 열 완성 대상) · [`07_interfaces`](./07_interfaces.md)(SC→ENT) · [`10_tech`](./10_tech.md)(SQLite 승격·성능 검증)
 - 미해결·후속: ① 영속화 형태 = **본 문서 §8-4에서 JSON-first 결정**(SQLite 승격 조건 명시) · ④ 채널 1:1 매핑(ENT-009.app_channel_name) · ⑤ 자산 편집 범위(ENT-014) · ⑥ web_monitor(ENT-015.web_monitor_mode) · ⑧ 위험 가드 정책(ENT-015.risk_patterns) → `13_followups` 연계.
