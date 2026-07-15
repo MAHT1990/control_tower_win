@@ -1,6 +1,8 @@
 using System;
+using System.Windows.Media;
 using ControlTowerWin.Features.EmbeddedTerminal.Interfaces;
 using EasyWindowsTerminalControl;
+using Microsoft.Terminal.Wpf;
 
 namespace ControlTowerWin.Features.EmbeddedTerminal.Services;
 
@@ -44,5 +46,32 @@ public class EasyTerminalSession : ITerminalSession
         if (_closed) return;
         _closed = true;
         _control.DisconnectConPTYTerm();
+    }
+
+    /* 글꼴 재적용에 필수인 non-null 기본 테마(Campbell 팔레트).
+       컨트롤의 SetTheme는 private·Theme getter도 private라, 앱이 테마 값을 보유했다가
+       write-only Theme에 재대입해야 내부 SetTheme가 현재 글꼴로 리테마한다(null이면 no-op). */
+    private static readonly TerminalTheme DefaultTheme = new()
+    {
+        DefaultBackground = 0x0C0C0C,
+        DefaultForeground = 0xCCCCCC,
+        DefaultSelectionBackground = 0xFFFFFF,
+        CursorStyle = CursorStyle.BlinkingBar,
+        ColorTable = new uint[]
+        {
+            0x0C0C0C, 0x1F0FC5, 0x0EA113, 0x009CC1,
+            0xDA3700, 0x981788, 0xDD963A, 0xCCCCCC,
+            0x767676, 0x5648E7, 0x0CC616, 0xA5F1F9,
+            0xFF783B, 0x9E00B4, 0xD6D661, 0xF2F2F2,
+        },
+    };
+
+    /* 런타임 글꼴 적용(FR-048). 렌더러만 리테마 — ConPTY 세션·스크롤백 유지. */
+    public void ApplyFont(string fontFamily, int fontSize)
+    {
+        if (string.IsNullOrWhiteSpace(fontFamily) || fontSize <= 0) return;
+        _control.FontFamilyWhenSettingTheme = new FontFamily(fontFamily);
+        _control.FontSizeWhenSettingTheme = fontSize;
+        _control.Theme = DefaultTheme;
     }
 }

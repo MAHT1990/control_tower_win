@@ -21,4 +21,7 @@ public interface ITerminalSession
 
     /* 세션 종료·정리(FN-TRM-02/FN-SES-05). ConPTY 자식을 정리해 좀비를 방지한다(멱등). */
     void Close();
+
+    /* 런타임 글꼴 적용(FR-048). 렌더러만 리테마하여 ConPTY 세션은 유지된다. */
+    void ApplyFont(string fontFamily, int fontSize);
 }
