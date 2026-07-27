@@ -1,7 +1,7 @@
 # 09. 데이터베이스 설계 (Database Design — 영속 모델 · ERD · ENT)
 
-> 담당: plan_db_modeler · 깊이: deep · 총 ENT 19 (영속 9 / 런타임 5 / 투영 5) / 7 도메인 분포(SEC 0) · FR 커버리지 48/48
-> 본 문서는 FR·FN·SC가 요구하는 데이터를 엔티티(ENT)로 확정하고, **영속화 형태(후속숙제 ①)를 v1 권고안으로 결정**하며, 이 앱의 특성상 큰 비중을 차지하는 **외부 파일 상태(채널·jsonl·자산)를 "소유 엔티티가 아닌 투영(projection)"으로 명확히 경계**짓는다. FR 전수 커버리지를 검증한다.
+> 담당: plan_db_modeler · 깊이: deep · 총 ENT 17 (영속 8 / 런타임 5 / 투영 4) / 6 도메인 분포(SEC 0) · FR 커버리지 45/45
+> 본 문서는 FR·FN·SC가 요구하는 데이터를 엔티티(ENT)로 확정하고, **영속화 형태(후속숙제 ①)를 v1 권고안으로 결정**하며, 이 앱의 특성상 큰 비중을 차지하는 **외부 파일 상태(채널·자산)를 "소유 엔티티가 아닌 투영(projection)"으로 명확히 경계**짓는다. FR 전수 커버리지를 검증한다.
 
 ---
 
@@ -9,25 +9,25 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04`(FR 48/NFR 22)·`05`(FN 58)·`07`(SC 24)가 요구하는 데이터를 엔티티로 영속화하고, `00_meeting_brief` §4 도메인 모델(SessionProfile·Session·Channel·TokenUsage)을 구체 스키마로 확정한다.
+본 문서는 `04`(FR 45/NFR 20)·`05`(FN 55)·`07`(SC 23)가 요구하는 데이터를 엔티티로 영속화하고, 도메인 모델(SessionProfile·Session·Channel)을 구체 스키마로 확정한다.
 
 - **정의하는 것**: 엔티티(ENT)·컬럼·타입·제약·관계·인덱스 방향 / **영속화 형태 결정(JSON vs SQLite, 후속숙제 ①)** / 영속·런타임·투영 3분류 경계 / 파일 레이아웃·원자적 저장(NFR-011) / FR 전수 커버리지.
 - **정의하지 않는 것(경계)**: 08(REST/DTO)은 서버 부재로 제외·in-proc 계약은 10 / 화면 배치=07 / VT 파서·렌더 성능·아키텍처=10 / 일정=12.
-- **이 앱의 데이터 특이성 (설계 대전제)**: Control Tower는 **자체 DB보다 로컬 파일 상태 소비가 큰** 앱이다. 채널 파일(`channels/<ch>/`)·세션 jsonl 트랜스크립트·`~/.claude` 자산은 **skill_ipc_control·Claude Code·OS 파일시스템이 스키마를 소유**하며, 우리는 이를 **read/watch(및 write-through)로 투영(projection)**할 뿐 스키마를 소유하지 않는다(C4·C6·NFR-017·NFR-020). 따라서 앱이 실제로 **소유·영속화하는 데이터는 소수**(프로파일·설정·복원 레이아웃·토큰 캐시·진단 로그)다.
+- **이 앱의 데이터 특이성 (설계 대전제)**: Control Tower는 **자체 DB보다 로컬 파일 상태 소비가 큰** 앱이다. 채널 파일(`channels/<ch>/`)·`~/.claude` 자산은 **skill_ipc_control·OS 파일시스템이 스키마를 소유**하며, 우리는 이를 **read/watch(및 write-through)로 투영(projection)**할 뿐 스키마를 소유하지 않는다(C4·NFR-017). 따라서 앱이 실제로 **소유·영속화하는 데이터는 소수**(프로파일·설정·복원 레이아웃·진단 로그)다.
 
 ### 0-2. 엔티티 ID 체계·도메인·영속 분류
 
 - **ENT-###**: DB 엔티티, 3자리 zero-pad. 본 문서가 자기 네임스페이스로 **신규 발번**(ENT-001~018)한다.
 - **참조 전용**: FR-###/NFR-###(04)·FN-{CAT}-##(05)·SC-##(07)·8 카테고리는 레지스트리 frozen 값을 **인용만** 하고 재번호하지 않는다.
-- **도메인 정렬**: 각 ENT를 04의 8 카테고리(TRM·SES·PRF·IPC·OBS·AST·SEC·SYS)에 정렬한다. FR↔ENT는 카테고리 일치를 강제하지 않으며(plan_id_system §6은 FR↔ENT 커버리지만 요구), 한 FR이 타 도메인 ENT로 덮일 수 있다.
+- **도메인 정렬**: 각 ENT를 04의 7 카테고리(TRM·SES·PRF·IPC·AST·SEC·SYS)에 정렬한다. FR↔ENT는 카테고리 일치를 강제하지 않으며(plan_id_system §6은 FR↔ENT 커버리지만 요구), 한 FR이 타 도메인 ENT로 덮일 수 있다.
 - **영속 분류(3종) — 본 문서의 1급 축**:
 
 | 마커 | 분류 | 의미 | 스키마 소유 | 예 |
 |---|---|---|---|---|
 | **[P]** | 영속(Persisted) | 앱이 소유·저장(JSON 파일). 앱 재시작 후 유지 | **앱** | SessionProfile · AppSettings · LastLayout |
-| **[C]** | 영속-캐시(Cache) | 외부 소스에서 파생, 재계산 가능한 영속 캐시 | 앱(파생) | TokenUsageSnapshot |
+| **[C]** | 영속-캐시(Cache) | 외부 소스에서 파생, 재계산 가능한 영속 캐시 | 앱(파생) | (v1 해당 없음) |
 | **[R]** | 런타임(Runtime) | 비영속. 프로세스·메모리 상태(재시작 시 소멸) | 앱(휘발) | Session · ScreenBuffer |
-| **[X]** | 투영(Projection) | 외부 파일 상태를 read/watch(+write-through). **우리가 스키마 미소유** | **외부** | ChannelRef · TranscriptRef · AssetNode |
+| **[X]** | 투영(Projection) | 외부 파일 상태를 read/watch(+write-through). **우리가 스키마 미소유** | **외부** | ChannelRef · AssetNode |
 
 ### 0-3. 우선순위·표기 규칙
 
@@ -55,8 +55,6 @@
 | ENT-009 | channel_ref | IPC | [X] | FR-024·029 | SC-16 |
 | ENT-010 | channel_member_ref | IPC | [X] | FR-024·026 | SC-16 |
 | ENT-011 | channel_message_ref | IPC | [X] | FR-025·028 | SC-17·18 |
-| ENT-012 | transcript_ref | OBS | [X] | FR-030 | SC-20 |
-| ENT-013 | token_usage_snapshot | OBS | [C] | FR-031·032 | SC-20·11 |
 | ENT-014 | asset_node | AST | [X] | FR-033·034·035·036 | SC-21·22 |
 | ENT-015 | app_settings | SYS | [P] | FR-029·033·037·038·041·042·048 | SC-02·13·05 |
 | ENT-016 | last_layout | SYS | [P] | FR-040·043 | SC-03·01 |
@@ -64,13 +62,12 @@
 | ENT-018 | diagnostics_log_entry | SYS | [P] | FR-016(NFR-022) | SC-06·11 |
 | ENT-019 | output_capture_buffer | SES | [R] | FR-047 | SC-24 |
 
-> 분포: **영속[P] 9** (005·006·007·008·015·016·017·018 = 8 + 캐시[C] 013 = 실질 영속 9) · **런타임[R] 5** (001·002·003·004·019) · **투영[X] 5** (009·010·011·012·014). 도메인: TRM 3 · SES 2 · PRF 4 · IPC 3 · OBS 2 · AST 1 · SYS 4 · **SEC 0**(횡단 정책 → AppSettings·Session에 데이터 위임). (v1.1 델타: ENT-004.display_name · ENT-019 캡처 버퍼)
+> 분포: **영속[P] 8** (005·006·007·008·015·016·017·018) · **런타임[R] 5** (001·002·003·004·019) · **투영[X] 4** (009·010·011·014). 도메인: TRM 3 · SES 2 · PRF 4 · IPC 3 · AST 1 · SYS 4 · **SEC 0**(횡단 정책 → AppSettings·Session에 데이터 위임). (v1.1 델타: ENT-004.display_name · ENT-019 캡처 버퍼)
 
 ### 1-2. 동적 스키마 핵심 (한눈)
 
 - **문서-애그리거트 비정규화**: SessionProfile은 관계형으로 3NF(자식 3종 분리)지만 **물리적으로 하나의 JSON 문서로 임베드**한다(원자적 temp→rename의 단위, NFR-011).
-- **투영 경계**: Channel·Transcript·Asset은 외부 소유 스키마의 read/watch 투영. 앱은 스키마·수명주기를 소유하지 않는다(재구현 금지 C4·NFR-017).
-- **파생 캐시 + 증분 커서**: TokenUsageSnapshot은 jsonl(진실원본, C6)에서 파생. `parseCursor`(바이트 오프셋)로 증분 파싱(NFR-005).
+- **투영 경계**: Channel·Asset은 외부 소유 스키마의 read/watch 투영. 앱은 스키마·수명주기를 소유하지 않는다(재구현 금지 C4·NFR-017).
 - **audit/진단**: DiagnosticsLogEntry가 append-only NDJSON(감사-유사, NFR-022).
 
 ---
@@ -79,12 +76,11 @@
 
 ### 2-1. 핵심 도메인 객체 (04 도메인 모델 → 데이터 관점)
 
-| 브리프 도메인 | 데이터 관점 도출 | 영속 판정 | 근거 FR/근거 |
+| 제품 도메인 | 데이터 관점 도출 | 영속 판정 | 근거 FR/근거 |
 |---|---|---|---|
-| SessionProfile { 의도태그·초기명령·cwd·주입스킬[]·채널멤버십[]·claude자동실행 } | **중심 애그리거트**. 저장·재사용 필수 | **[P] 영속** | FR-019·020 "저장·재사용", 브리프 §4 "저장·재사용 가능해야" |
+| SessionProfile { 의도태그·초기명령·cwd·주입스킬[]·채널멤버십[]·claude자동실행 } | **중심 애그리거트**. 저장·재사용 필수 | **[P] 영속** | FR-019·020 "저장·재사용", 도메인 모델 "저장·재사용 가능해야" |
 | Session(런타임) { profile·conpty핸들·pid·as·상태 } | ConPTY **프로세스 상태** — 복원 불가 | **[R] 런타임** | FR-016·043(세션 자체 복원 불가, 프로파일 재기동으로 대체) |
 | Channel { name·relayUrl·members } ↔ skill_ipc_control | 외부 채널 디렉토리의 **투영** | **[X] 투영** | C4·NFR-017 "IPC 재구현 금지, 파일 계약만 소비" |
-| TokenUsage { session·source=jsonl } | jsonl에서 **파생**되는 집계 캐시 | **[C] 캐시** | C6 "토큰 소스=jsonl 파싱(API 아님)" |
 | (신규 도출) AppSettings·LastLayout·DiagnosticsLog | 설정·복원·진단 | **[P] 영속** | FR-042·043·016(NFR-022) |
 
 ### 2-2. 데이터 생명주기
@@ -93,7 +89,6 @@
 SessionProfile:  생성(SC-15) -> 조회/목록(SC-14) -> 편집(SC-15) -> 복제(as 신규)/삭제(하드) -> [영속 유지]
 Session(런타임): spawn(FR-001) -> running -> exited/error -> 소멸(앱 종료 시 일괄 정리 FN-TRM-02)  [비영속]
 Channel/Message: 외부 생성(send.cmd) -> 앱 watch/read 투영 -> UI 표시                     [앱은 소비만]
-TokenUsage:      jsonl append 감지 -> 증분 파싱(cursor) -> 집계 캐시 갱신 -> 표시            [파생·재계산 가능]
 Asset:           OS 파일 -> 트리 투영/읽기 -> write-through(원자적 저장) -> 트리 갱신         [OS 소유]
 ```
 
@@ -103,16 +98,14 @@ Asset:           OS 파일 -> 트리 투영/읽기 -> write-through(원자적 �
 |---|---|---|---|
 | SessionProfile | 정형(문서) | 읽기 우위 | 3~10 / 20~50 / 50~100 (소수) |
 | Session(런타임) | 정형 | — | 동시 ≥8(NFR-012), 휘발 |
-| TokenUsageSnapshot | 정형(집계) | 쓰기(증분) 빈번 | 함대 스냅샷 수십 / 이력 축적 시 수백~수천/년 |
 | DiagnosticsLog | 반정형(로그) | 쓰기 매우 빈번 | 수천/일 (회전 필요) |
-| Channel/Transcript/Asset | 외부 소유 | 앱=읽기(watch) | 앱 미저장(투영) |
+| Channel/Asset | 외부 소유 | 앱=읽기(watch) | 앱 미저장(투영) |
 
 ### 2-4. NFR 반영
 
 - **NFR-011(원자성)**: 모든 [P] 저장은 temp→rename. JSON 전체-파일 교체가 이를 자명하게 충족.
-- **NFR-005(증분 파싱)**: TokenUsageSnapshot.parseCursor로 append분만 재파싱.
 - **NFR-008(경로 안전)**: AssetNode 접근은 `~/.claude` 경계 CHECK/가드(FN-SEC-04).
-- **NFR-020(방어적 파싱)**: TranscriptRef/ChannelMessageRef 투영 시 미지 필드 무시·손상 라인 skip.
+- **방어적 파싱**: ChannelMessageRef 투영 시 미지 필드 무시·손상 라인 skip.
 - **NFR-021(ClickOnce 호환)**: 배포 단순성 위해 **네이티브 의존 없는 JSON 우선**(SQLite 네이티브 번들 회피) — §8-4 결정 근거.
 
 ---
@@ -121,7 +114,7 @@ Asset:           OS 파일 -> 트리 투영/읽기 -> write-through(원자적 �
 
 > 엔티티가 18개로 많아 **영속분류 3존으로 ERD를 분할**한다(deep: 존별 상세 + §3-4 존간 브리지).
 
-### 3-1. 영속 존 ERD ([P] 소유 + [C] 캐시) — 앱이 스키마를 소유하는 유일한 영역
+### 3-1. 영속 존 ERD ([P] 소유) — 앱이 스키마를 소유하는 유일한 영역
 
 ```mermaid
 erDiagram
@@ -131,7 +124,6 @@ erDiagram
     APP_SETTINGS ||--o| SESSION_PROFILE : "defaultProfile (SET NULL)"
     LAST_LAYOUT ||--o{ LAST_LAYOUT_ENTRY : "captures"
     LAST_LAYOUT_ENTRY }o--|| SESSION_PROFILE : "restores (RESTRICT)"
-    TRANSCRIPT_REF ||--|| TOKEN_USAGE_SNAPSHOT : "aggregated-into (cache)"
 
     SESSION_PROFILE {
         uuid id PK
@@ -183,17 +175,6 @@ erDiagram
         string as
         int tab_order
         bool corrupt "DEFAULT false"
-    }
-    TOKEN_USAGE_SNAPSHOT {
-        uuid id PK
-        string session_as "INDEX"
-        path transcript_path FK "logical"
-        long input_tokens
-        long output_tokens
-        long cache_tokens
-        long total_tokens "denorm"
-        long parse_cursor "byte offset NFR-005"
-        timestamp last_parsed_at
     }
     DIAGNOSTICS_LOG_ENTRY {
         uuid id PK
@@ -278,13 +259,6 @@ erDiagram
         text body
         timestamp ts
     }
-    TRANSCRIPT_REF {
-        path transcript_path PK "logical"
-        string session_as
-        bool present "graceful"
-        string format "='jsonl' EXTERNAL"
-        long size_bytes "incremental basis"
-    }
     ASSET_NODE {
         path path PK "guarded"
         path parent_path FK "self"
@@ -298,12 +272,11 @@ erDiagram
 
 ```
 [P] SESSION_PROFILE --spawn(value-copy)--> [R] SESSION          (FR-011: 프로파일->런타임, 참조 복사)
-[R] SESSION --as-map--> [X] TRANSCRIPT_REF --> [C] TOKEN_USAGE  (FR-030/031: as<->jsonl 매핑->집계)
 [P] PROFILE_CHANNEL_MEMBERSHIP --by name--> [X] CHANNEL_REF     (FR-026: 프로파일 멤버십<->외부 채널)
 [R] SESSION(as) --join--> [X] CHANNEL_MEMBER_REF               (FR-026: 런타임 as<->채널 멤버)
 [R] SESSION(as) --source--> [P] DIAGNOSTICS_LOG_ENTRY          (FR-016: 세션 이벤트->진단 로그)
 ```
-캡션: **영속(왼쪽)은 앱 소유, 투영(오른쪽)은 외부 소유**. 브리지는 대부분 `as`(IPC 식별자) 또는 이름/경로에 의한 **논리 조인**이며, 런타임 소멸·외부 파일 부재에 대해 graceful(NFR-020)해야 하므로 물리 FK 무결성을 강제하지 않는다.
+캡션: **영속(왼쪽)은 앱 소유, 투영(오른쪽)은 외부 소유**. 브리지는 대부분 `as`(IPC 식별자) 또는 이름/경로에 의한 **논리 조인**이며, 런타임 소멸·외부 파일 부재에 대해 graceful해야 하므로 물리 FK 무결성을 강제하지 않는다.
 
 ---
 
@@ -486,39 +459,7 @@ erDiagram
 | body | text | — | 본문 |
 | ts | timestamp | — | 시각 |
 
-### 4-5. OBS — 관측·토큰 [X]+[C]
-
-#### [ENT-012] transcript_ref          (도메인: OBS · [X] 투영)
-- 설명: Claude Code 세션 jsonl 트랜스크립트 투영. **포맷은 Claude Code 소유**(C6), 방어적 파싱(NFR-020).
-- 소급 FR: FR-030 / 구현 FN: FN-OBS-01 / 소비 SC: SC-20
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|---|---|---|---|
-| transcript_path | path | PK (논리) | jsonl 경로 |
-| session_as | string | — | 매핑된 세션 as |
-| present | bool | — | 파일 존재(부재 graceful) |
-| format | const | ='jsonl' | 외부 포맷 |
-| size_bytes | long | — | 현재 크기(증분 기준) |
-
-#### [ENT-013] token_usage_snapshot          (도메인: OBS · [C] 영속-캐시)
-- 설명: jsonl에서 파생한 **집계 캐시** + 증분 커서. 진실원본=jsonl(C6)이므로 손실 시 재계산 가능. v1 JSON 캐시, 이력 축적 시 SQLite 에스컬레이션 대상(§8-4).
-- 소급 FR: FR-031·032 / 구현 FN: FN-OBS-02·03 / 소비 SC: SC-20·11
-
-| 컬럼 | 타입 | 제약 | 설명 |
-|---|---|---|---|
-| id | uuid | PK | |
-| session_as | string | INDEX(IDX-03) | 세션 as(표시 조인) |
-| transcript_path | path | 논리 FK->ENT-012 | 소스 트랜스크립트 |
-| input_tokens | long | DEFAULT 0, CHECK>=0 | |
-| output_tokens | long | DEFAULT 0, CHECK>=0 | |
-| cache_tokens | long | DEFAULT 0, CHECK>=0 | |
-| total_tokens | long | 파생 저장(비정규화) | 표시 성능용(§8-2) |
-| parse_cursor | long | DEFAULT 0, CHECK>=0 | 마지막 파싱 바이트 오프셋(증분 NFR-005) |
-| last_parsed_at | timestamp | — | |
-
-- 데이터 특성: 세션/트랜스크립트당 1행, 증분 쓰기 빈번. 함대 스냅샷 수십 / 이력 유지 시 수백~수천/년.
-
-### 4-6. AST — 프롬프트 자산 [X]
+### 4-5. AST — 프롬프트 자산 [X]
 
 #### [ENT-014] asset_node          (도메인: AST · [X] 투영, write-through)
 - 설명: `~/.claude/{rules,skills,agents}` 파일시스템 트리 투영. 읽기 + write-through CRUD(원자적 저장). **스키마=OS 파일시스템**, 우리는 미소유. 모든 접근 경로 가드(NFR-008/FN-SEC-04).
@@ -534,7 +475,7 @@ erDiagram
 
 - 데이터 특성: OS 소유, 앱 미저장(요청 시 트리 로드). 대용량 파일 스트리밍 읽기(SC-22).
 
-### 4-7. SYS — 앱 셸·설정·복원·진단 [P]
+### 4-6. SYS — 앱 셸·설정·복원·진단 [P]
 
 #### [ENT-015] app_settings          (도메인: SYS · [P] 영속 싱글턴)
 - 설명: 앱 설정 싱글턴 + 횡단 정책(SEC 위임: 위험 가드 설정·포트 0 표기). ClickOnce 업데이트 캐시(선택).
@@ -598,8 +539,7 @@ erDiagram
 | 패턴 | 대상 ENT | 트리거(요구) | 트레이드오프 |
 |---|---|---|---|
 | **문서-애그리거트 임베드(비정규화)** | ENT-005 + 006·007·008 | NFR-011 원자성 · FR-020 재사용 | 애그리거트 단위 원자 저장·조인 제거 ↔ 부분 갱신 시 전체 재기록(소수라 무해) |
-| **투영(projection) 엔티티** | ENT-009·010·011·012·014 | C4·C6·NFR-017 재구현 금지 | 재구현·중복 저장 제거·단일 진실원본 ↔ 외부 포맷 변경/부재에 방어적 파싱 필요(NFR-020) |
-| **파생 캐시 + 증분 커서** | ENT-013 | NFR-005 증분 파싱 · FR-031 | 재파싱 회피(성능) ↔ 캐시 staleness(커서·재계산으로 관리) |
+| **투영(projection) 엔티티** | ENT-009·010·011·014 | C4·NFR-017 재구현 금지 | 재구현·중복 저장 제거·단일 진실원본 ↔ 외부 포맷 변경/부재에 방어적 파싱 필요 |
 | **JSONB/유연 컬럼** | ENT-003.pane_layout · ENT-015.risk_patterns | FR-008·044 분할 레이아웃 · 후속 ⑧ 미확정 | 스키마 확정 지연 흡수 ↔ 질의성 저하(소량이라 무해) |
 | **audit/history(append-only)** | ENT-018 | NFR-022 진단 | 사후 추적성 ↔ 무한 증가 → 회전/보존 정책 필요(§8-3) |
 | **싱글턴(CHECK=1)** | ENT-015·016 | 설정/직전-레이아웃 유일 | 단순·경쟁 없음(단일 유저 C7) |
@@ -625,8 +565,6 @@ erDiagram
 [REL-09] ENT-009 <-> ENT-010 | 1:N | FK 위치: ENT-010.channel_name | 무결성: 투영(외부 소유, 강제 없음)
 [REL-10] ENT-009 <-> ENT-011 | 1:N | FK 위치: ENT-011.channel_name | 무결성: 투영
 [REL-11] ENT-004 <-> ENT-010 | N:? | by as (런타임 세션<->채널 멤버) | 무결성: 논리 조인(as)
-[REL-12] ENT-004 <-> ENT-012 | 1:0..1 | by as (세션<->jsonl 매핑) | 무결성: graceful(부재 허용 FR-030)
-[REL-13] ENT-012 <-> ENT-013 | 1:1 | 논리 FK: ENT-013.transcript_path | 무결성: 캐시(재계산 가능)
 [REL-14] ENT-015 <-> ENT-005 | N:1 | FK 위치: ENT-015.default_profile_id | 무결성: SET NULL(기본 프로파일 삭제 시)
 [REL-15] ENT-016 <-> ENT-017 | 1:N | FK 위치: ENT-017.layout_id | 무결성: CASCADE
 [REL-16] ENT-017 <-> ENT-005 | N:1 | FK 위치: ENT-017.profile_id | 무결성: RESTRICT/손상 플래그(삭제 시 corrupt=true, SC-03 비활성)
@@ -645,7 +583,6 @@ erDiagram
 [CON-05] 대상: ENT-004.state | CHECK IN(starting,running,exited,error) | 상태 도메인 | FR-016
 [CON-06] 대상: ENT-015.id / ENT-016.id | CHECK=1 | 싱글턴 강제 | 설정/레이아웃 유일
 [CON-07] 대상: ENT-015.listening_ports | CHECK=0 | 포트 0 정책 | FR-038/NFR-006(외부 미노출)
-[CON-08] 대상: ENT-013.(input/output/cache/parse_cursor) | CHECK>=0 | 음수 불가 | 파싱 무결성
 [CON-09] 대상: ENT-014.path | CHECK(starts_with boundary_root) + `..` 정규화 차단 | 경로 탈출 차단 | NFR-008/FN-SEC-04 ★
 [CON-10] 대상: ENT-018.level | CHECK IN(INFO,WARN,ERR) | 레벨 도메인 | SC-06 필터
 [CON-11] 대상: ENT-006.seq | NOT NULL, 프로파일 내 순서 유일 | 실행 순서 결정 | FR-012 순차 주입
@@ -664,7 +601,6 @@ erDiagram
 ```
 [IDX-01] 대상: ENT-005.intent_tag | B-Tree/인메모리 그룹맵 | 근거: SC-14 의도태그 그룹/필터 — 프로파일 그룹핑 조회
 [IDX-02] 대상: ENT-005.as | Unique/Hash | 근거: as 유일성 검증(CON-02)·as->프로파일 역조회(FN-PRF-07)
-[IDX-03] 대상: ENT-013.session_as | B-Tree/Hash | 근거: SC-20/SC-11 세션별 토큰 표시 조인 조회
 [IDX-04] 대상: ENT-018(ts, source, level) | Composite B-Tree | 근거: SC-06 진단 로그 타임라인 + level/source 필터
 [IDX-05] 대상: ENT-014.parent_path | B-Tree | 근거: SC-21 트리 확장(부모->자식 lazy-load) 자식 열거
 [IDX-06] 대상: ENT-011(channel_name, ts) | (투영, inbox.log 자연 순서) | 근거: SC-17 채널 대화 시간순 렌더
@@ -673,11 +609,10 @@ erDiagram
 대표 쿼리(논리):
 - SC-14: `SELECT profile GROUP BY intent_tag` → IDX-01.
 - SC-15 저장 시: `EXISTS profile WHERE as = ?` (유일성) → IDX-02.
-- SC-20: `SELECT as, total_tokens FROM token_snapshot ORDER BY total DESC` → IDX-03.
 - SC-06: `SELECT * FROM diag WHERE level>=WARN AND source=? ORDER BY ts DESC LIMIT n` → IDX-04(복합).
 - SC-21: `SELECT * FROM asset_node WHERE parent_path = ?` → IDX-05.
 
-> 투영/런타임 엔티티(009~012·014·001~004)는 물리 인덱스 대상이 아니다. 인덱스 채택은 실질적으로 **ENT-013·018**(축적형)에서만 의미가 크며, 이는 SQLite 에스컬레이션 판단의 핵심 근거다(§8-4).
+> 투영/런타임 엔티티(009~011·014·001~004)는 물리 인덱스 대상이 아니다. 인덱스 채택은 실질적으로 **ENT-018**(축적형)에서만 의미가 크며, 이는 SQLite 에스컬레이션 판단의 핵심 근거다(§8-4).
 
 ---
 
@@ -692,14 +627,12 @@ erDiagram
 | ENT-015·016 | BCNF | 싱글턴, 함수종속 단순 |
 | ENT-017 | 3NF | layout_id·profile_id 참조 정규 |
 | ENT-018 | 3NF(로그 append) | 이벤트 원자 레코드 |
-| ENT-013 token_usage | **3NF 위반(의도적)** | `total_tokens`=파생 저장(input+output+cache) |
 | ENT-001~004(런타임) | N/A | 인메모리 |
-| ENT-009~012·014(투영) | N/A | 외부 스키마, 우리가 정규화 안 함 |
+| ENT-009~011·014(투영) | N/A | 외부 스키마, 우리가 정규화 안 함 |
 
 ### 8-2. 의도적 비정규화 + 근거
 
 1. **SessionProfile 문서 임베드**: 애그리거트를 한 파일로 원자 저장(NFR-011 temp→rename 단위)·조인 제거·소수 레코드. 부분 갱신 시 전체 재기록 비용은 무시 가능(문서 수 KB).
-2. **TokenUsageSnapshot.total_tokens 파생 저장**: SC-20/SC-11 표시·정렬 성능. 단일 라이터(증분 파싱)라 갱신 시 항상 재계산 → 갱신 이상 실질 무해.
 
 ### 8-3. 잠재 이상현상 점검
 
@@ -708,11 +641,11 @@ erDiagram
 | 삭제 이상 | 프로파일 삭제 시 ENT-017.profile_id·ENT-015.default_profile_id 댕글링 | REL-16 RESTRICT/corrupt 플래그, REL-14 SET NULL |
 | 수정 이상 | total_tokens 파생값 부분 갱신 | 증분 파싱마다 전량 재계산(단일 라이터) |
 | 삽입 이상 | 없음(문서 애그리거트는 자기완결) | — |
-| 투영 무결성 | 외부 채널/jsonl 부재·포맷 변경 | graceful/방어적 파싱(NFR-020), 물리 FK 미강제 |
+| 투영 무결성 | 외부 채널 부재·포맷 변경 | graceful/방어적 파싱, 물리 FK 미강제 |
 
 ### 8-4. 영속화 형태 결정 (후속숙제 ①) + 마이그레이션·볼륨 (deep) ★
 
-**결정(v1 권고안 확정): JSON-파일 스토어(primary) + SQLite는 "축적형(토큰 이력·진단)의 에스컬레이션 대상"으로 지정 — 하이브리드를 실용적으로 "JSON-first, SQLite-ready"로 해소.**
+**결정(v1 권고안 확정): JSON-파일 스토어(primary) + SQLite는 "축적형(진단 로그)의 에스컬레이션 대상"으로 지정 — 하이브리드를 실용적으로 "JSON-first, SQLite-ready"로 해소.**
 
 판단 매트릭스:
 
@@ -723,7 +656,7 @@ erDiagram
 | 배포(ClickOnce, NFR-021) | **네이티브 의존 0** | SQLite 네이티브 바이너리 번들 필요 | **JSON**(배포 단순·NFR-021) ★ |
 | 가독/이식/git | JSON 우위(`~/.claude` 생태계 정합) | 바이너리 | JSON |
 | 동시성 | 단일 유저·단일 라이터(C7) | 불필요한 강점 | JSON 무리 없음 |
-| 질의/집계/이력 | 약함 | **강함(시계열·정렬·필터)** | → **토큰 이력·진단만** 해당 |
+| 질의/집계/이력 | 약함 | **강함(시계열·정렬·필터)** | → **진단만** 해당 |
 
 - **v1 물리 레이아웃**:
 ```
@@ -731,10 +664,9 @@ erDiagram
   profiles/<id>.json      # ENT-005~008 (프로파일당 1파일=개별 원자 저장, 전량 재기록 회피)
   settings.json           # ENT-015 (싱글턴)
   last_layout.json        # ENT-016+017
-  cache/token_usage.json  # ENT-013 (파생 캐시 + parse_cursor)
   logs/diagnostics.ndjson # ENT-018 (append-only, 회전)
 ```
-- **에스컬레이션 트리거(SQLite로 승격할 조건)**: (a) 토큰 **이력/시계열 분석**이 요구로 승격되어 ENT-013이 수백~수천/년으로 축적, (b) 진단 로그의 **질의형 조회**(복합 필터·기간 집계, IDX-04)가 상시화. 두 축적형(ENT-013·018)만 SQLite 테이블로 이관하고 프로파일/설정은 JSON 유지(진짜 하이브리드).
+- **에스컬레이션 트리거(SQLite로 승격할 조건)**: 진단 로그의 **질의형 조회**(복합 필터·기간 집계, IDX-04)가 상시화되면 축적형(ENT-018)만 SQLite 테이블로 이관하고 프로파일/설정은 JSON 유지(진짜 하이브리드).
 - **마이그레이션 고려**: 모든 [P] 문서에 `schema_version` 필드 → 로드 시 버전 업캐스트. JSON→SQLite 이관 시 `parse_cursor`·집계값 그대로 컬럼 매핑(무손실). 저장은 항상 temp→rename + 쓰기 전 백업.
 - **SQLite 물리 타입 매핑(승격 시)**: string→TEXT · int/long→INTEGER · bool→INTEGER(0/1) · timestamp→TEXT(ISO8601)/INTEGER(epoch) · path→TEXT · json→TEXT.
 
@@ -744,12 +676,12 @@ erDiagram
 
 ### 9-1. 총계·분포
 
-- **ENT 총 19** — 도메인: TRM 3 · SES 2 · PRF 4 · IPC 3 · OBS 2 · AST 1 · SYS 4 · SEC 0.
-- **영속 분류**: [P] 영속 8 + [C] 캐시 1 = **실질 영속 9** · [R] 런타임 5 · [X] 투영 5.
-- **관계 총 19(REL)** — 1:1 3 · 1:N 11 · N:M 1(중간=ENT-008) · N:? 논리조인 4(REL-19 추가).
-- **핵심 인사이트**: 앱이 **스키마를 소유하는 영속 엔티티는 9개뿐**이며, 그중 중심은 SessionProfile 애그리거트. 나머지 데이터 비중(채널·jsonl·자산)은 전부 외부 소유 **투영**이다.
+- **ENT 총 17** — 도메인: TRM 3 · SES 2 · PRF 4 · IPC 3 · AST 1 · SYS 4 · SEC 0.
+- **영속 분류**: [P] 영속 8 · [R] 런타임 5 · [X] 투영 4.
+- **관계 총 17(REL)** — 1:1 3 · 1:N 11 · N:M 1(중간=ENT-008) · N:? 논리조인 2.
+- **핵심 인사이트**: 앱이 **스키마를 소유하는 영속 엔티티는 8개뿐**이며, 그중 중심은 SessionProfile 애그리거트. 나머지 데이터(채널·자산)는 전부 외부 소유 **투영**이다.
 
-### 9-2. FR 커버리지 확인 (★불변식 — 48/48, 미커버 0)
+### 9-2. FR 커버리지 확인 (★불변식 — 45/45, 미커버 0)
 
 | FR | ENT | | FR | ENT |
 |---|---|---|---|---|
@@ -760,26 +692,24 @@ erDiagram
 | FR-005 | 001[R] | | FR-027 | 007·004 |
 | FR-006 | 003[R] | | FR-028 | 011[X] |
 | FR-007 | 002·004[R] | | FR-029 | 009·015 |
-| FR-008 | 003[R] | | FR-030 | 012[X] |
-| FR-009 | 004[R] | | FR-031 | 013·012 |
-| FR-010 | 001[R] | | FR-032 | 013 |
-| FR-011 | 005·004·008 | | FR-033 | 014·015 |
-| FR-012 | 005·006 | | FR-034 | 014[X] |
-| FR-013 | 005 | | FR-035 | 014[X] |
-| FR-014 | 004·018 | | FR-036 | 014[X] |
-| FR-015 | 004[R] | | FR-037 | 015(guard cfg)◦ |
-| FR-016 | 004·018 | | FR-038 | 015(policy)◦ |
-| FR-017 | 004[R] | | FR-039 | 004(owned)◦ |
-| FR-018 | 005·004 | | FR-040 | 016(layout)◦ |
-| FR-019 | 005·006·007·008 | | FR-041 | 015(update cache)◦ |
-| FR-020 | 005[P] | | FR-042 | 015[P] |
-| FR-021 | 005[P] | | FR-043 | 016·017·005 |
-| FR-022 | 005 | | FR-044 | 003(pane_layout) |
-| | | | FR-045 | 004[R] |
-| FR-046 | 003·004(display_name) | | FR-047 | 019·004 |
-| FR-048 | 015(terminal_font_*) | | | |
+| FR-008 | 003[R] | | FR-033 | 014·015 |
+| FR-009 | 004[R] | | FR-034 | 014[X] |
+| FR-010 | 001[R] | | FR-035 | 014[X] |
+| FR-011 | 005·004·008 | | FR-036 | 014[X] |
+| FR-012 | 005·006 | | FR-037 | 015(guard cfg)◦ |
+| FR-013 | 005 | | FR-038 | 015(policy)◦ |
+| FR-014 | 004·018 | | FR-039 | 004(owned)◦ |
+| FR-015 | 004[R] | | FR-040 | 016(layout)◦ |
+| FR-016 | 004·018 | | FR-041 | 015(update cache)◦ |
+| FR-017 | 004[R] | | FR-042 | 015[P] |
+| FR-018 | 005·004 | | FR-043 | 016·017·005 |
+| FR-019 | 005·006·007·008 | | FR-044 | 003(pane_layout) |
+| FR-020 | 005[P] | | FR-045 | 004[R] |
+| FR-021 | 005[P] | | FR-046 | 003·004(display_name) |
+| FR-022 | 005 | | FR-047 | 019·004 |
+| | | | FR-048 | 015(terminal_font_*) |
 
-> **미커버 FR = 0 (48/48)** ✅ 불변식 충족.
+> **미커버 FR = 0 (45/45)** ✅ 불변식 충족.
 > ◦ **데이터-경량 FR(5건)**: FR-037(가드=정책·런타임 인터셉트, 패턴목록만 ENT-015에 영속)·FR-038(포트0=집행·표기)·FR-039(소유범위=런타임 집행, owned 플래그)·FR-040(셸 조합=UI, 복원가능분만 ENT-016)·FR-041(ClickOnce=배포 인프라 외부, 업데이트 캐시만 ENT-015). 각각 ≥1 ENT 데이터 접점을 가지되 본질은 정책/UI/배포임을 명시.
 
 ### 9-3. 고아 ENT 점검
@@ -797,13 +727,13 @@ erDiagram
 | SC-05 | 015(update) | SC-17 | 011 |
 | SC-06 | 018·004 | SC-18 | 011 |
 | SC-07 | 003 | SC-19 | 007·004 |
-| SC-08 | 001·002·004 | SC-20 | 012·013 |
-| SC-09 | 001 | SC-21 | 014 |
-| SC-10 | 003 | SC-22 | 014 |
-| SC-11 | 004·013·018 | SC-23 | 004·003 |
-| SC-12 | 004 | SC-24 | 019 |
+| SC-08 | 001·002·004 | SC-21 | 014 |
+| SC-09 | 001 | SC-22 | 014 |
+| SC-10 | 003 | SC-23 | 004·003 |
+| SC-11 | 004·018 | SC-24 | 019 |
+| SC-12 | 004 | | |
 
-> 24개 SC 전부 ≥1 ENT로 데이터 충족. **미매핑 SC = 0.**
+> 23개 SC 전부 ≥1 ENT로 데이터 충족. **미매핑 SC = 0.**
 
 ### 9-5. 자체 검증 게이트
 
@@ -823,6 +753,6 @@ erDiagram
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_db_modeler · 깊이: deep · 발번 ID: ENT-001~018 (FR/FN/SC·카테고리는 참조만, 재번호 없음)
-- 입력: `04_requirements.md`(FR 48/NFR 22·후속숙제①⑨) · `05_functions.md`(FN 58) · `07_interfaces.md`(SC 24 표시 데이터) · `00_meeting_brief.md`(도메인 모델) · 규약(plan_doc_skeleton·plan_id_system)
+- 입력: `04_requirements.md`(FR 45/NFR 20·후속숙제①⑨) · `05_functions.md`(FN 55) · `07_interfaces.md`(SC 23 표시 데이터) · 규약(plan_doc_skeleton·plan_id_system)
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md)(추적성 매트릭스 ENT 열 완성 대상) · [`07_interfaces`](./07_interfaces.md)(SC→ENT) · [`10_tech`](./10_tech.md)(SQLite 승격·성능 검증)
 - 미해결·후속: ① 영속화 형태 = **본 문서 §8-4에서 JSON-first 결정**(SQLite 승격 조건 명시) · ④ 채널 1:1 매핑(ENT-009.app_channel_name) · ⑤ 자산 편집 범위(ENT-014) · ⑥ web_monitor(ENT-015.web_monitor_mode) · ⑧ 위험 가드 정책(ENT-015.risk_patterns) → `13_followups` 연계.

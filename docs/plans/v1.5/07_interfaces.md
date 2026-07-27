@@ -1,6 +1,6 @@
 # 07. 인터페이스 설계 (IA · 화면 · 흐름 · UX)
 
-> 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 24 / FR 커버리지 48/48 (100%) · 고아 화면 0
+> 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 23 / FR 커버리지 45/45 (100%) · 고아 화면 0
 > 본 문서는 Control Tower 단일 WPF 셸의 정보구조(IA)·화면 명세(SC)·사용자 흐름·UX 원칙을 정의한다. 08(REST/API)은 서버 부재로 제외하며, 데이터 형상=09·in-proc 계약=10 소관이다. 화면이 필요로 하는 데이터는 "무엇이 보인다" 수준으로만 기술한다.
 
 ---
@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04`(FR 48/NFR 22)·`05`(FN 58)가 정의한 "무엇을"과 `06`(BS 24/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 탭 컨테이너 + 탭 내 pane 분할)를 반영한다.
+본 문서는 `04`(FR 48/NFR 22)·`05`(FN 58)가 정의한 "무엇을"과 `06`(BS 24/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 탭 컨테이너 + 탭 내 pane 분할)를 반영한다.
 
 - **정의하는 것**: 앱 단일 셸의 영역(존) 구성(IA) / 각 화면의 목적·구성요소·상호작용·표시 데이터·연결 FN/FR·진입/이탈(SC) / 모드(UT)별 화면 전이 흐름 / 키보드 중심 UX 원칙·전환 가드.
 - **정의하지 않는 것(경계)**: 08(REST 엔드포인트·DTO)은 서버 부재로 제외 / 데이터 형상(엔티티·프로파일 영속 스키마·ERD)=09 / in-proc 계약·터미널 엔진·아키텍처 검증=10. 본 문서는 "어떤 정보가 화면에 보이는가"까지만 적고 계약은 넘긴다.
@@ -25,8 +25,8 @@
 ### 0-3. 표기 규칙
 
 - **분류(6종, 데스크톱 셸 적응)**: `Shell/System`(셸 크롬·설정·상태·에러·배포) · `Main`(상시 노출 핵심 존) · `Sub`(부가·다이얼로그·오버레이·인라인 바). *Public/Auth/Admin은 본 제품에 없음(C7)*.
-- **존(Zone)**: `T`=중앙 터미널 존 · `L`=좌측 내비게이터 존(세션/프로파일/자산 전환 도크) · `R`=우측 오케스트레이션 존(채널/토큰) · `S`=셸 크롬·시스템 · `O`=오버레이/다이얼로그.
-- **상태 3종**: 각 화면의 `로딩(loading)`·`빈(empty)`·`에러(error)` 상태를 명시(06 §6 엣지 E3/E4/E5 반영).
+- **존(Zone)**: `T`=중앙 터미널 존 · `L`=좌측 내비게이터 존(세션/프로파일/자산 전환 도크) · `R`=우측 오케스트레이션 존(채널) · `S`=셸 크롬·시스템 · `O`=오버레이/다이얼로그.
+- **상태 3종**: 각 화면의 `로딩(loading)`·`빈(empty)`·`에러(error)` 상태를 명시(06 §6 엣지 E3/E4 반영).
 - **상태 배지(전역 약물)**: `[*]`starting(amber) · `[>]`running(green) · `[x]`exited(grey) · `[!]`error(red). 세션·채널·저장 상태에 공통 사용.
 - **와이어프레임(deep)**: ASCII 박스. **박스 내부는 영문 식별자만**, 한글 설명은 박스 밖 캡션에 둔다(rule_visualization_guide). `[BTN]`버튼 · `{data}`동적 표시 데이터 · `< >`분기.
 
@@ -48,7 +48,7 @@
 | SC-08 | 터미널 뷰 (Terminal View) | Main | T | UT-003·005 | FR-002·003·004·005·007·009·045 | FN-TRM-03·04·05·06·07·09·10·12·15 |
 | SC-09 | 선택 컨텍스트 메뉴 (Selection Menu) | Sub | T·O | UT-003 | FR-010 | FN-TRM-13 |
 | SC-10 | pane 분할 레이아웃 (Pane Split) [Should] | Sub | T | UT-003 | FR-008·044 | FN-TRM-11·14 |
-| SC-11 | 세션 목록 패널 (Session Fleet List) | Main | L | UT-002·003·005 | FR-016·017·018·015·039·032 | FN-SES-07·08·09·10·05·06·OBS-03·SEC-03 |
+| SC-11 | 세션 목록 패널 (Session Fleet List) | Main | L | UT-002·003·005 | FR-016·017·018·015·039 | FN-SES-07·08·09·10·05·06·SEC-03 |
 | SC-12 | 커맨드 주입 바 (Command Bar) | Sub | T | UT-002·003 | FR-014 | FN-SES-04 |
 | SC-13 | 위험 커맨드 확인 게이트 (Risk Confirm Gate) | Sub | O | UT-002 | FR-037 | FN-SEC-01 |
 | SC-14 | 프로파일 목록·프리셋 (Profile / Preset List) | Main | L | UT-002·004 | FR-011·012·013·020·021·022 | FN-SES-01·02·03·PRF-03·04·05·06 |
@@ -57,13 +57,12 @@
 | SC-17 | 채널 대화 뷰 (Channel Conversation) | Main | R | UT-005·002 | FR-028 | FN-IPC-06 |
 | SC-18 | 채널 메시지 송신 바 (Channel Send Bar) | Sub | R | UT-002 | FR-025 | FN-IPC-03 |
 | SC-19 | IPC 스킬 주입 (Skill Trigger Inject) | Sub | O | UT-002 | FR-027 | FN-IPC-05 |
-| SC-20 | 토큰 대시보드 (Token Dashboard) | Main | R | UT-005·002 | FR-030·031·032 | FN-OBS-01·02·03 |
 | SC-21 | 자산 트리 패널 (Asset Tree) | Main | L | UT-004 | FR-033·036 | FN-AST-01·04·SEC-04 |
 | SC-22 | 자산 에디터 (Asset Editor) | Main | T | UT-004 | FR-034·035 | FN-AST-02·03·SEC-04 |
 | SC-23 | 세션 액션 컨텍스트 메뉴 (Session Action Menu) | Sub | T·O | UT-002·003 | FR-014·015·046·018 | FN-SES-04·05·06·10·TRM-16 |
 | SC-24 | 출력 캡처 버퍼 (Capture Buffer) | Main | R | UT-002·003 | FR-047 | FN-SES-11 |
 
-> 분포: Shell/System 6 · Main 11 · Sub 7 = **24 화면**. 존: T 5 · L 3 · R 5 · S 1 · O 10(오버레이는 존 겸속). Public/Auth/Admin 0(C7). (v1.1 델타: SC-23 세션 액션 메뉴 · SC-24 캡처 버퍼)
+> 분포: Shell/System 6 · Main 10 · Sub 7 = **23 화면**. 존: T 5 · L 3 · R 4 · S 1 · O 10(오버레이는 존 겸속). Public/Auth/Admin 0(C7). (v1.1 델타: SC-23 세션 액션 메뉴 · SC-24 캡처 버퍼)
 
 ### 1-2. IA 조망 + 사용자 흐름 개요
 
@@ -73,10 +72,10 @@
 [SHELL SC-01] = TOP chrome + L navigator + T terminal + R orchestration
    L(navigator): SESSIONS SC-11 | PROFILES SC-14 | ASSETS SC-21   (도크 전환)
    T(terminal) : TAB-BAR SC-07 > TERMINAL SC-08 (/SPLIT SC-10) > CMD-BAR SC-12
-   R(orchestr) : CHANNEL SC-16 | CONVERSATION SC-17+SEND SC-18 | TOKENS SC-20
+   R(orchestr) : CHANNEL SC-16 | CONVERSATION SC-17+SEND SC-18 | CAPTURE SC-24
    O(overlay)  : SC-02 SC-03 SC-04 SC-05 SC-06 SC-09 SC-13 SC-15 SC-19 SC-22*
 ```
-캡션: 좌측은 "재료·함대"(세션/프로파일/자산 전환 도크), 중앙은 "조작 substrate"(터미널 탭), 우측은 "협업·관측 맥락"(채널/토큰). 자산 에디터(SC-22)는 정비 국면에서 중앙 터미널 존을 대체 점유(에디터 모드).
+캡션: 좌측은 "재료·함대"(세션/프로파일/자산 전환 도크), 중앙은 "조작 substrate"(터미널 탭), 우측은 "협업 맥락"(채널). 자산 에디터(SC-22)는 정비 국면에서 중앙 터미널 존을 대체 점유(에디터 모드).
 
 **사용자 흐름 개요(§4 상세)** — 5개 대표 흐름 + 1 라이프사이클.
 
@@ -85,7 +84,7 @@
 | Flow A | JM-001 아침 함대 셋업 | UT-004→002 | SC-14→SC-15→SC-14(preset)→SC-07/08→SC-11→SC-16 |
 | Flow B | JM-002 세션 협업 개시 | UT-002 | SC-11→SC-16→SC-19→**SC-13(게이트)**→SC-17 ; SC-12→SC-13 |
 | Flow C | JM-003 개별 세션 세밀조작 | UT-003 | SC-07→SC-08→SC-09→SC-08(scroll/resize)→SC-11 |
-| Flow D | JM-004 관측→개입 전환 | UT-005→003/002 | SC-20→SC-11(badge)→SC-17→[anomaly]→SC-08/SC-12→복귀 |
+| Flow D | JM-004 관측→개입 전환 | UT-005→003/002 | SC-17→SC-11(badge)→[anomaly]→SC-08/SC-12→복귀 |
 | Flow E | JM-005 프롬프트 자산 정비 | UT-004 | SC-21→SC-22→SC-21(CRUD)→SC-02 |
 | Flow F | 앱 라이프사이클 | UT-001 | (start)SC-03→…→SC-05→(quit)SC-04 |
 
@@ -105,7 +104,7 @@
  |     +-- {global-status: owned N} (FN-SEC-03 소유 범위)
  |
  +-- LEFT NAVIGATOR DOCK (L)   (한 번에 1개 활성, 탭 전환)
- |     +-- SESSIONS   SC-11   [>][*][x][!] badges + token col
+ |     +-- SESSIONS   SC-11   [>][*][x][!] badges
  |     +-- PROFILES   SC-14   preset groups / launch / clone / delete
  |     +-- ASSETS     SC-21   ~/.claude tree (boundary marked)
  |
@@ -120,7 +119,6 @@
  +-- RIGHT ORCHESTRATION ZONE (R)  (탭 전환)
  |     +-- CHANNELS     SC-16   watch/members/mapping/stale
  |     +-- CONVERSATION SC-17 + SEND BAR SC-18
- |     +-- TOKENS       SC-20   fleet token dashboard
  |     +-- CAPTURE BUF  SC-24   A출력->편집->대상 주입
  |
  +-- OVERLAYS / DIALOGS (O)
@@ -143,8 +141,8 @@
 |   SC-11  |     TERMINAL VIEW  SC-08                   |   SC-16   |
 | o PROF   |     {cells / alt-screen TUI}              | o CONV    |
 |   SC-14  |     {scrollback viewport}                 |   SC-17   |
-| o ASSET  |                                           | o TOKEN   |
-|   SC-21  |                                           |   SC-20   |
+| o ASSET  |                                           |           |
+|   SC-21  |                                           |           |
 |          +-------------------------------------------+           |
 |          | CMD-BAR SC-12  target:[tower2] > {cmd}___ |  SEND     |
 |          +-------------------------------------------+  SC-18    |
@@ -167,11 +165,10 @@
 | T·CMD-BAR (SC-12) + 게이트(SC-13) | ● | ●(단일) | — | — |
 | R·CHANNELS (SC-16) + 주입(SC-19) | ● | — | — | ○(뷰) |
 | R·CONVERSATION (SC-17·18) | ●(송신) | — | — | ●(관망) |
-| R·TOKENS (SC-20) | ○ | ○(단일) | — | ● |
 | S·SETTINGS (SC-02) | ○ | — | ● | — |
 | S·DIAG (SC-06) | ○ | ○ | — | ● |
 
-> 화면 커버리지: 8 카테고리 존 전부 ≥1 모드가 `●`. 관측자(UT-005)는 전 존을 read/watch로 관통하되 송신·주입·편집 액션은 비노출(관망 UX, BS-017/018).
+> 화면 커버리지: 7 카테고리 존 전부 ≥1 모드가 `●`. 관측자(UT-005)는 전 존을 read/watch로 관통하되 송신·주입·편집 액션은 비노출(관망 UX, BS-018).
 
 ---
 
@@ -392,22 +389,22 @@
 
 #### [SC-11] 세션 목록 패널 (Session Fleet List)
 - 분류/존: Main · L · 대상 UT-002·003·005(관측 read)
-- FR/FN: FR-016·017·018·015·039·032 / FN-SES-07·08·09·10·05·06·OBS-03·SEC-03 (BS-006·010·019, 엣지 E10)
+- FR/FN: FR-016·017·018·015·039 / FN-SES-07·08·09·10·05·06·SEC-03 (BS-010·019, 엣지 E10)
 - 목적: 앱-소유 다중 세션을 한 목록으로 개관·전환·상태 추적·정리(종료/재시작/강제종료). **앱-소유 범위 표기**(외부 프로세스 배제, SEC-03)와 상태 가시성이 1급 제약.
-- 핵심 구성요소: 세션 카드(as·pid·profile) / 상태 배지(`[*]`starting·`[>]`running·`[x]`exited·`[!]`error) / 세션별 토큰 열(SC-20 동기) / [종료]·[재시작]·[강제종료] 액션 / 앱-소유 범위 표기(owned only).
-- 표시 데이터: {sessions[]: as·pid·state·profile·tokens}.
-- 상호작용: 세션 선택→해당 탭 활성(SC-07/08 동기, FN-SES-09) / [종료]→BS-010 정상 종료 / [재시작]→BS-019 재기동 / [강제종료]→무응답 폴백 kill(E10) / 정리 판단→BS-006(토큰 소진순, SC-20 연계). 다중 선택→SC-12 다중 주입 대상.
+- 핵심 구성요소: 세션 카드(as·pid·profile) / 상태 배지(`[*]`starting·`[>]`running·`[x]`exited·`[!]`error) / [종료]·[재시작]·[강제종료] 액션 / 앱-소유 범위 표기(owned only).
+- 표시 데이터: {sessions[]: as·pid·state·profile}.
+- 상호작용: 세션 선택→해당 탭 활성(SC-07/08 동기, FN-SES-09) / [종료]→BS-010 정상 종료 / [재시작]→BS-019 재기동 / [강제종료]→무응답 폴백 kill(E10). 다중 선택→SC-12 다중 주입 대상.
 - 상태: 로딩=세션 스캔 / 빈=세션 0→"Spawn your first session" placeholder(SC-01 연계) / 에러=세션 error 시 격리 배지 [!]+진단 링크(SC-06).
 - 진입: 좌 도크 SESSIONS / Flow C·D / 이탈: 선택→SC-07/08, 정리→SC-04 유형 확인, 이상→SC-06.
 ```
 +------- SESSIONS (SC-11)  owned:3 (app-owned only) -------+
-| as        state    tokens                                |
-| tower2    [>]       1.07M   [End] [Restart] [Kill]        |
-| sangmin   [>]        420K   [End] [Restart] [Kill]        |
-| proj_7    [!]err      --    [End] [Restart] [Kill]        |  <- 격리 배지
+| as        state                                          |
+| tower2    [>]        [End] [Restart] [Kill]               |
+| sangmin   [>]        [End] [Restart] [Kill]               |
+| proj_7    [!]err     [End] [Restart] [Kill]               |  <- 격리 배지
 +----------------------------------------------------------+
 ```
-캡션: 앱-소유 세션만 목록·정리 대상(외부 프로세스 배제, SEC-03). 선택 시 중앙 탭·활성 세션과 동기, 상태 배지로 함대 건강을 즉시 식별. 크래시 세션은 격리 배지로 표면화(NFR-009), 정리 판단은 토큰 열(SC-20 동기)을 근거로 한다.
+캡션: 앱-소유 세션만 목록·정리 대상(외부 프로세스 배제, SEC-03). 선택 시 중앙 탭·활성 세션과 동기, 상태 배지로 함대 건강을 즉시 식별. 크래시 세션은 격리 배지로 표면화(NFR-009).
 
 #### [SC-12] 커맨드 주입 바 (Command Bar)
 - 분류/존: Sub · T(좌측 트리 컬럼 하단) · 대상 UT-002·003
@@ -583,30 +580,7 @@
 ```
 캡션: 트리거 프롬프트 주입=별도 프로토콜 없이 입력 파이프 재사용(C5). 프롬프트 비활성 타이밍 유실 시 재주입 안내(E11).
 
-### 3-5. OBS 존 (R)
-
-#### [SC-20] 토큰 대시보드 (Token Dashboard)
-- 분류/존: Main · R · 대상 UT-005·002
-- FR/FN: FR-030·031·032 / FN-OBS-01·02·03 (관련 NFR-005·020 · BS-006·017, 엣지 E4·E5)
-- 목적: 세션 jsonl 트랜스크립트 탐지·매핑→토큰 파싱·집계→세션별 표시. 함대 토큰 개관(정리 판단 근거).
-- 핵심 구성요소: 함대 요약(합계) / 세션별 토큰 행(input/output/cache) / 갱신 시각 / 정렬(소진순) / 세션 정리 진입.
-- 표시 데이터: {perSession:[as·input·output·cache·total]}, {fleetTotal}, {transcriptPresent?}, {lastUpdated}.
-- 상호작용: 정렬·세션 선택→SC-11 정리 액션(BS-006). 증분 파싱으로 최신 반영(NFR-005). 트랜스크립트 부재는 graceful placeholder.
-- 상태: 로딩=jsonl 증분 파싱 / 빈=세션 0 또는 트랜스크립트 부재→"측정 불가" placeholder(E5) / 에러=손상 라인→방어적 skip(NFR-020), 표시 지속.
-- 진입: 우 도크 TOKENS / Flow D / 이탈: 정리 대상→SC-11.
-```
-+-------- TOKEN DASHBOARD (SC-20) --------+
-| fleet total: {in 1.2M / out 340K}       |
-| as       in     out    cache   total    |
-| tower2   820K   210K    40K    1.07M     |
-| sangmin  310K    98K    12K     420K     |
-| proj_7   [--- transcript missing ---]    |  <- graceful placeholder
-| updated {12:03:40}    sort:[total v]     |
-+-----------------------------------------+
-```
-캡션: 토큰 소스=세션 jsonl 파싱(C6, API 아님). 부재/손상은 방어적 처리로 관제탑 신뢰 유지(P-001 Churn: 관측 신뢰). 세션별 토큰은 SC-11 목록 열에도 동기 표시.
-
-### 3-6. AST 존 (L / T)
+### 3-5. AST 존 (L / T)
 
 #### [SC-21] 자산 트리 패널 (Asset Tree)
 - 분류/존: Main · L · 대상 UT-004
@@ -653,7 +627,7 @@
 ```
 캡션: 앱 내 편집 완결이 UT-004 핵심 가치(별도 에디터 이탈 관성 제거, JM-005 Aha). 저장은 원자적(NFR-011)으로 손상 0, 경로는 항상 ~/.claude 경계 내 검증.
 
-### 3-7. 세션 액션·출력 라우팅 존 (T·R) — v1.1 델타
+### 3-6. 세션 액션·출력 라우팅 존 (T·R) — v1.1 델타
 
 #### [SC-23] 세션 액션 컨텍스트 메뉴 (Session Action Menu)
 - 분류/존: Sub · T·O(트리 노드/pane 우클릭) · 대상 UT-002·003
@@ -774,12 +748,12 @@ flowchart TD
 
 ### 4-4. Flow D — 관측→개입 전환 (JM-004 / UT-005→003/002)
 
-관통 BS: BS-017·018·019·011.
+관통 BS: BS-018·019·011.
 ```
- [SC-20 token dashboard] -> [SC-11 session badges watch] -> [SC-17 channel dialog watch]
-        |  (read-only 관망)                                        |
-        v                                                          v
-   < anomaly? (stopped/error/token-spike) >
+ [SC-17 channel dialog watch] -> [SC-11 session badges watch]
+        |  (read-only 관망)                |
+        v                                  v
+   < anomaly? (stopped/error) >
         | no  -> [KEEP WATCHING]
         | yes -> [SWITCH MODE] -> < type? >
                    | operate  -> [SC-08 focus tab] -> [SC-12 inject fix (target 明示)]
@@ -787,7 +761,7 @@ flowchart TD
                    | crash    -> [SC-06 diag: isolated?] -> [SC-11 restart]
                                   -> [BACK TO WATCH]
 ```
-캡션: 저개입 관망(토큰·배지·대화)→이상 감지 시 모드 전환. 운영(탭 포커스·수정 주입)/오케(종료·재시작·게이트)/크래시(진단→격리 확인→재시작)로 개입 후 관망 복귀(03 §4-1 모드 전환 루프 실행 사례). 개입 대상은 항상 명시(오개입 방지).
+캡션: 저개입 관망(배지·대화)→이상 감지 시 모드 전환. 운영(탭 포커스·수정 주입)/오케(종료·재시작·게이트)/크래시(진단→격리 확인→재시작)로 개입 후 관망 복귀(03 §4-1 모드 전환 루프 실행 사례). 개입 대상은 항상 명시(오개입 방지).
 
 ### 4-5. Flow E — 프롬프트 자산 정비 (JM-005 / UT-004)
 
@@ -857,49 +831,48 @@ flowchart TD
 - **터미널 UX 정합(NFR-015)**: 포커스 타이핑·선택 복사·스크롤백·리사이즈가 Windows Terminal/VS Code 터미널 수준 관성. 특수키(Ctrl+C·방향키·Enter)는 세션으로, 앱 단축키는 모디파이어 격리.
 - **주의 분산 방지(03 §4-3)**: 활성 세션은 탭(굵기·언더라인)·커맨드 바 대상 칩·주입 게이트 대상 목록의 **3중 명시**. 모드 전환 시 개입 대상 고정.
 - **상태 배지 일관**: `[*][>][x][!]` 4상태를 세션 목록·탭·채널 멤버·저장 상태에 공통 적용. 색+기호 병기(색각 접근성).
-- **빈 상태(empty)**: 프로파일/세션/채널/자산 0건 시 생성 유도 CTA + placeholder(E3). "측정 불가"(토큰 부재, E5)는 오류가 아닌 정보로 표기.
+- **빈 상태(empty)**: 프로파일/세션/채널/자산 0건 시 생성 유도 CTA + placeholder(E3).
 - **오류 표시**: 세션 error는 배지+터미널 오버레이+진단 링크(SC-06). 저장 실패는 원본 보존+재시도. 존 로드 실패는 격리(타 존 정상).
 - **반응형(데스크톱)**: 좌/우 도크 접기·존 리사이즈 그립·창 리사이즈 시 PTY 재조정(재래핑 디바운스). 최소 폭 이하에서 도크 자동 접힘.
-- **성능 관성(품질 목표, 10 검증)**: 대량 출력 diff 렌더 프레임 유지(NFR-001)·토큰 증분 파싱(NFR-005)·watch 반영 ≤2s(NFR-004). 화면은 이를 전제로 스켈레톤/스피너 제공.
+- **성능 관성(품질 목표, 10 검증)**: 대량 출력 diff 렌더 프레임 유지(NFR-001)·watch 반영 ≤2s(NFR-004). 화면은 이를 전제로 스켈레톤/스피너 제공.
 
 ---
 
 ## 6. 요약
 
 ### 6-1. 화면 수·분류·존 분포
-- **총 24 화면**: Shell/System 6 · Main 11 · Sub 7. Public/Auth/Admin 0(단일 유저·인증 없음, C7).
-- **존 분포**: T(터미널) 5 · L(내비게이터) 3 · R(오케스트레이션) 5 · S(셸/시스템) 1 · O(오버레이) 10(존 겸속).
-- **8 카테고리 화면 커버**: TRM(SC-07~10) · SES(SC-11·12) · PRF(SC-14·15) · IPC(SC-16~19) · OBS(SC-20) · AST(SC-21·22) · SEC(SC-13·04·21·22 횡단) · SYS(SC-01~06). → 누락 카테고리 0.
+- **총 23 화면**: Shell/System 6 · Main 10 · Sub 7. Public/Auth/Admin 0(단일 유저·인증 없음, C7).
+- **존 분포**: T(터미널) 5 · L(내비게이터) 3 · R(오케스트레이션) 4 · S(셸/시스템) 1 · O(오버레이) 10(존 겸속).
+- **7 카테고리 화면 커버**: TRM(SC-07~10) · SES(SC-11·12) · PRF(SC-14·15) · IPC(SC-16~19) · AST(SC-21·22) · SEC(SC-13·04·21·22 횡단) · SYS(SC-01~06). → 누락 카테고리 0.
 
-### 6-2. FR 커버리지 (48/48 = 100%) ★불변식
+### 6-2. FR 커버리지 (45/45 = 100%) ★불변식
 
 | FR | SC | FR | SC | FR | SC |
 |---|---|---|---|---|---|
-| FR-001 | 04 | FR-016 | 11·06 | FR-031 | 20 |
-| FR-002 | 08 | FR-017 | 11 | FR-032 | 20·11 |
-| FR-003 | 08 | FR-018 | 11·03 | FR-033 | 21 |
-| FR-004 | 08 | FR-019 | 15 | FR-034 | 22 |
-| FR-005 | 08 | FR-020 | 14 | FR-035 | 22 |
-| FR-006 | 07 | FR-021 | 14 | FR-036 | 21 |
-| FR-007 | 08 | FR-022 | 14 | FR-037 | 13 |
-| FR-008 | 10 | FR-023 | 15 | FR-038 | 02 |
-| FR-009 | 08 | FR-024 | 16 | FR-039 | 11·04 |
-| FR-010 | 09 | FR-025 | 18 | FR-040 | 01 |
-| FR-011 | 14 | FR-026 | 16 | FR-041 | 05 |
-| FR-012 | 14·15 | FR-027 | 19 | FR-042 | 02 |
-| FR-013 | 15·14 | FR-028 | 17 | FR-043 | 03 |
-| FR-014 | 12 | FR-029 | 16 | FR-044 | 10 |
-| FR-015 | 11·07·04 | FR-030 | 20 | FR-045 | 07·08 |
-| FR-046 | 07·23 | FR-047 | 24 | FR-048 | 02 |
+| FR-001 | 04 | FR-016 | 11·06 | FR-034 | 22 |
+| FR-002 | 08 | FR-017 | 11 | FR-035 | 22 |
+| FR-003 | 08 | FR-018 | 11·03 | FR-036 | 21 |
+| FR-004 | 08 | FR-019 | 15 | FR-037 | 13 |
+| FR-005 | 08 | FR-020 | 14 | FR-038 | 02 |
+| FR-006 | 07 | FR-021 | 14 | FR-039 | 11·04 |
+| FR-007 | 08 | FR-022 | 14 | FR-040 | 01 |
+| FR-008 | 10 | FR-023 | 15 | FR-041 | 05 |
+| FR-009 | 08 | FR-024 | 16 | FR-042 | 02 |
+| FR-010 | 09 | FR-025 | 18 | FR-043 | 03 |
+| FR-011 | 14 | FR-026 | 16 | FR-044 | 10 |
+| FR-012 | 14·15 | FR-027 | 19 | FR-045 | 07·08 |
+| FR-013 | 15·14 | FR-028 | 17 | FR-046 | 07·23 |
+| FR-014 | 12 | FR-029 | 16 | FR-047 | 24 |
+| FR-015 | 11·07·04 | FR-033 | 21 | FR-048 | 02 |
 
-> **미커버 FR = 0** (48/48). NFR 중 화면 실현분: NFR-006/007/008(SC-02·13·21·22)·NFR-009(SC-06/08 격리)·NFR-010(SC-16)·NFR-011(SC-15·22)·NFR-022(SC-06). 나머지 품질 NFR은 10(tech) 검증.
+> **미커버 FR = 0** (45/45). NFR 중 화면 실현분: NFR-006/007/008(SC-02·13·21·22)·NFR-009(SC-06/08 격리)·NFR-010(SC-16)·NFR-011(SC-15·22)·NFR-022(SC-06). 나머지 품질 NFR은 10(tech) 검증.
 
 ### 6-3. 자체 검증 게이트
 | 게이트 | 결과 |
 |---|---|
-| FR 커버리지(미커버 FR=0) | ✅ 48/48 |
-| 고아 화면 0(모든 SC ≥1 흐름/IA 등장) | ✅ 24/24 (Flow A~F + IA §2 전수 등장, SC-23·24 IA §2-1) |
-| 참조 무결(인용 FR/FN/UT/BS가 레지스트리 존재) | ✅ FR-001~048·FN 58·UT-001~005·BS-001~024 인용, 재번호 0 |
+| FR 커버리지(미커버 FR=0) | ✅ 45/45 |
+| 고아 화면 0(모든 SC ≥1 흐름/IA 등장) | ✅ 23/23 (Flow A~F + IA §2 전수 등장, SC-23·24 IA §2-1) |
+| 참조 무결(인용 FR/FN/UT/BS가 레지스트리 존재) | ✅ FR-001~048(030~032 삭제)·FN 55·UT-001~005·BS-001~024(006·017 삭제) 인용, 재번호 0 |
 | SC 네임스페이스 유일 | ✅ SC-01~24 중복 0 |
 | 06 핵심 요구 반영 | ✅ 활성 세션 명시(SC-07·12·13)·주입 게이트(SC-13)·상태 배지(SC-07·11·16)·경로 경계(SC-21·22) |
 
@@ -909,7 +882,7 @@ flowchart TD
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_interface_designer · 깊이: deep
-- 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 48/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 58·화면 후보) · `06_behaviors.md`(BS 24/JM 5 접점) · `00_meeting_brief.md`(WPF 단일 셸·Feature×Layer·탭 컨테이너+탭 내 pane 분할) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
+- 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 45/NFR 20·7 카테고리·제약 C1~C10) · `05_functions.md`(FN 55·화면 후보) · `06_behaviors.md`(BS 22/JM 5 접점) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
 - 발번 ID: SC-01~22 (FR/FN/UT/BS·카테고리는 참조만, 재번호 없음)
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md)(추적성 매트릭스 SC 열 완성 대상) · [`06_behaviors`](./06_behaviors.md)(접점→SC 확정) · [`09_database`](./09_database.md)(SC 표시 데이터→ENT)
 - 미해결·후속: 채널 1:1 매핑(④·SC-16)·위험 가드 정책 범위(⑧·SC-13)·프롬프트 편집 v1 범위(⑤·SC-21·22)·web_monitor 흡수 vs 병존(⑥·SC-17)·pane 분할(FR-008·SC-10 Could) → `13_followups` 연계.

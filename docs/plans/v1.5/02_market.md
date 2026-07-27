@@ -1,7 +1,7 @@
 # 02. 시장 분석 (Market Analysis · Competitive Landscape · Build vs Buy)
 
 > 담당: plan_competitor_researcher · 깊이: deep · 조사 13개(국내 0 / 해외 13) · 카테고리 4축
-> 본 문서는 터미널 substrate·AI 세션 오케스트레이션·토큰 관측·VT 렌더 컨트롤 4축의 시장·경쟁을 조사해 Control Tower v1의 Build vs Buy 결정과 설계 반영점을 외부 근거로 뒷받침한다.
+> 본 문서는 터미널 substrate·AI 세션 오케스트레이션·VT 렌더 컨트롤 3축의 시장·경쟁을 조사해 Control Tower v1의 Build vs Buy 결정과 설계 반영점을 외부 근거로 뒷받침한다.
 
 ---
 
@@ -11,13 +11,12 @@
 - **경쟁 지형 3분할**: ① 터미널/멀티플렉서(Windows Terminal·VS Code·tmux·WezTerm·Warp) = substrate 벤치마크, ② AI 세션 오케스트레이터(Claude Squad·Conductor·Vibe Kanban·Claude Code 네이티브 Agent Teams) = 직접 경쟁, ③ 토큰 관측(ccusage) = 인접 유틸.
 - **결정적 공백(우리의 자리)**: 모든 오케스트레이터는 **git worktree 격리** 모델이다 — 에이전트가 서로 밟지 않게 **분리**하는 데 집중하고, **세션이 서로 대화**하지 않는다. Control Tower의 `skill_ipc_control` 기반 **세션 간 IPC 채널 협업**(FR-024~029)은 조사한 13개 중 어디에도 없는 차별 축이다.
 - **플랫폼 공백**: Conductor는 macOS 전용, Claude Squad는 TUI, Vibe Kanban은 웹. **Windows 네이티브 데스크톱 관제탑**(WPF)은 비어 있는 세그먼트다.
-- **Build vs Buy 핵심 결론(브리프 결정 검증)**:
-  - ConPTY 세션 소유·앱-소유·주입 제어 = **BUILD**(자체) — 통제력이 정체성. 브리프 결정 #4 정당.
-  - 터미널 렌더 엔진(파싱·셀 렌더·alt-screen) = **BUY/Integrate**(EasyWindowsTerminalControl — 공식 WT 렌더러 임베드) — 자체 렌더러 대공사 회피. 브리프 결정 #6 정당.
+- **Build vs Buy 핵심 결론(제품 방침 검증)**:
+  - ConPTY 세션 소유·앱-소유·주입 제어 = **BUILD**(자체) — 통제력이 정체성. ConPTY 0순위 빌드 순서 방침이 시장 조사로 정당화됨.
+  - 터미널 렌더 엔진(파싱·셀 렌더·alt-screen) = **BUY/Integrate**(EasyWindowsTerminalControl — 공식 WT 렌더러 임베드) — 자체 렌더러 대공사 회피. 외부 엔진 위임 방침이 시장 조사로 정당화됨.
   - IPC 채널/relay = **REUSE**(skill_ipc_control 재사용, GUI 프론트엔드만) — NFR-017 재구현 금지.
-  - 토큰 = **BUILD-light**(자체 증분 jsonl 파서, ccusage 로직 참고) — jsonl 소스는 업계 표준 접근.
   - 배포 = **BUY**(ClickOnce 계승).
-- **최우선 차별화 투자**: (High Impact/High Effort) 세션 간 IPC 협업 + ConPTY 임베드, (High Impact/Low Effort) 토큰 관측 내장·의도별 프로파일 프리셋.
+- **최우선 차별화 투자**: (High Impact/High Effort) 세션 간 IPC 협업 + ConPTY 임베드, (High Impact/Low Effort) 의도별 프로파일 프리셋.
 
 ---
 
@@ -45,12 +44,12 @@
 | 에이전트 터미널 | Warp | 유료 터미널+에이전트 | 관찰·공유 | 기능 참고, 로컬·무료로 차별 |
 | 세션 오케스트레이터 | Claude Squad·Conductor·Vibe Kanban | TUI/데스크톱/웹 | **worktree 격리** | 직접 경쟁 — IPC 협업으로 차별 |
 | 네이티브 팀 기능 | Claude Code Agent Teams | CLI 내장 | 리드-워커 | 위협·트렌드 근거 |
-| 토큰 관측 유틸 | ccusage | CLI | — | 내장 흡수(Build-light) |
+| 토큰 관측 유틸 | ccusage | CLI | — | 범위 밖 |
 
 ### 1-4. 규제·표준 이슈
 
-- 로컬 전용·무인증·단일 유저(브리프 §8) → **개인정보/네트워크 규제 노출 최소**. 앱 수신 포트 0(NFR-006)이 규제·보안 표면을 실질 제거.
-- 의존 표준: Windows ConPTY(`CreatePseudoConsole`, Win10 1809+), Claude Code jsonl 트랜스크립트 포맷(비공식·변경 가능 → 방어적 파싱 NFR-020), ClickOnce 배포.
+- 로컬 전용·무인증·단일 유저(기본 가정) → **개인정보/네트워크 규제 노출 최소**. 앱 수신 포트 0(NFR-006)이 규제·보안 표면을 실질 제거.
+- 의존 표준: Windows ConPTY(`CreatePseudoConsole`, Win10 1809+), ClickOnce 배포.
 
 ### 1-5. 경쟁 지형 한눈에 (13개)
 
@@ -139,8 +138,8 @@
 #### [CS-010] ccusage
 - URL: github.com/ryoppippi/ccusage / OSS(npm) / CLI / ★약 4.8k[^ccusage]
 - 한줄 정의: 로컬 `~/.claude/projects/**/*.jsonl`을 파싱해 일/주/월/세션 토큰·비용 집계하는 CLI.
-- 강점: **jsonl 로컬 파싱**(우리 FR-030/031과 동일 접근·검증), cache 토큰 분리 집계, 오프라인 가격 모드, `--instances`로 프로젝트별 그룹.
-- 약점(우리 기회): **CLI 별도 실행**(관제탑에 미통합), 세션↔앱 실시간 매핑·UI 없음. → 우리는 파싱 로직 접근을 참고하되 **관제탑 내장·증분 파싱**(NFR-005)으로 흡수.
+- 강점: **jsonl 로컬 파싱**, cache 토큰 분리 집계, 오프라인 가격 모드, `--instances`로 프로젝트별 그룹.
+- 약점: **CLI 별도 실행**(관제탑 미통합), 세션↔앱 실시간 매핑·UI 없음.
 
 ### 2-4. VT 렌더링 / .NET 컨트롤 substrate (Build vs Buy 근거)
 
@@ -175,12 +174,11 @@
 | 의도별 세션 프로파일·프리셋 (FR-019·022) | ● | ◐ | ○ | ◐ | ○ | ◐ |
 | 세션에 커맨드/트리거 주입 (FR-014·027) | ● | ◐ | ◐ | ● | ● | ○ |
 | **세션 간 IPC 채널 협업 (FR-024~029)** ★ | ● | ○ | ○ | ◐ | ○ | ○ |
-| 토큰 관측·집계 내장 (FR-030~032) | ● | ○ | ○ | ◐ | ○ | ○ |
 | 프롬프트 자산(~/.claude) 편집 (FR-033~036) | ● | ○ | ○ | ○ | ○ | ○ |
 | Windows 네이티브 데스크톱 (NFR-019) | ● | ● | ○ | ● | ● | ● |
 | 로컬 전용·무인증·무료 (FR-038) | ● | ● | ● | ◐ | ● | ● |
 
-관찰: **★행(세션 간 IPC 협업)·토큰 내장·자산 편집** 세 행에서 우리만 ●. 나머지 오케스트레이터는 전부 worktree 격리라 세션이 서로 대화하지 않는다. 이 세 행이 Control Tower의 방어 가능한 차별 묶음.
+관찰: **★행(세션 간 IPC 협업)·자산 편집** 두 행에서 우리만 ●. 나머지 오케스트레이터는 전부 worktree 격리라 세션이 서로 대화하지 않는다. 이 두 행이 Control Tower의 방어 가능한 차별 묶음.
 
 ### 3-1. 포지셔닝 맵
 
@@ -206,18 +204,17 @@
 
 판단 축: **비용 · 출시 속도 · 통제력 · 락인/리스크**. 핵심 차별화 영역 → Build, 범용·비핵심 → Buy/Reuse.
 
-| # | 영역 | 결정 | 근거(경쟁 벤치마크 + 브리프) | 관련 |
+| # | 영역 | 결정 | 근거(경쟁 벤치마크 + 제품 방침) | 관련 |
 |---|---|---|---|---|
 | B1 | 임베드 터미널 엔진(spawn·렌더·주입) | **INTEGRATE/BUY** (EasyWindowsTerminalControl, MIT) | 공식 Windows Terminal 렌더러(Microsoft.Terminal.Control/Wpf)를 WPF에 임베드하는 NuGet 컨트롤. 앱-소유·주입은 TermPTY API로 통제. WinUI3 직접 임베드의 마찰(투명 합성 불가·주입 API 미노출)은 백엔드만 WPF용으로 취해 회피 | FR-001·002·014·039 |
 | B2 | VT 시퀀스 파싱 | **엔진 내장** | 공식 WT 렌더러가 파싱·렌더를 일체 제공 → 자체 파서 채택 불필요 | FR-003·NFR-018 |
 | B3 | 셀 렌더러 | **엔진 내장**(공식 WT GPU 렌더러) | 자체 셀 렌더러 대신 공식 렌더러 신뢰. self-build(MS GUIConsole.ConPTY)는 폴백 | FR-004·005·007 |
-| B4 | IPC 채널·relay·전송 | **REUSE**(skill_ipc_control) | CS군 어디도 세션 간 IPC 없음 = 재사용 자산이 곧 차별. 재구현 금지(NFR-017), GUI 프론트엔드만. 결정 #3 | FR-024·025·027·029 |
-| B5 | 토큰 집계(jsonl) | **BUILD-light**(자체 증분 파서) | ccusage(CS-010)로 jsonl 접근 검증됨 — 로직 참고하되 CLI 종속 회피, 관제탑 내장·증분(NFR-005). 결정 #11 | FR-030·031·032 |
-| B6 | 세션 오케스트레이션 UX(프로파일·다중세션·IPC 협업 뷰) | **BUILD**(차별화 핵심) | Squad/Conductor보다 깊은 프로파일 애그리거트 + 유일한 IPC 협업 뷰. 통제력·차별화 우선 | FR-011·019·022·026·028 |
+| B4 | IPC 채널·relay·전송 | **REUSE**(skill_ipc_control) | CS군 어디도 세션 간 IPC 없음 = 재사용 자산이 곧 차별. 재구현 금지(NFR-017), GUI 프론트엔드만 | FR-024·025·027·029 |
+| B6 | 세션 오케스트레이션 UX(프로파일·다중세션·IPC 협업 뷰) | **BUILD**(차별화 핵심) | Squad/Conductor보다 깊은 프로파일 한 벌 + 유일한 IPC 협업 뷰. 통제력·차별화 우선 | FR-011·019·022·026·028 |
 | B7 | 프롬프트 자산 편집(~/.claude 트리·에디터) | **BUILD-light** | 경쟁 부재(공백), 범용 파일 트리+에디터라 경량 자체 구현. 경로 안전(NFR-008) | FR-033~036 |
-| B8 | 배포·업데이트 | **BUY/Reuse**(ClickOnce) | 기존 파이프라인 계승, 출시 속도·비용. 결정 #8(브리프 §8) | FR-041·NFR-021 |
+| B8 | 배포·업데이트 | **BUY/Reuse**(ClickOnce) | 기존 파이프라인 계승, 출시 속도·비용 | FR-041·NFR-021 |
 
-요약: **차별화 3축(세션 소유·IPC 협업·관측/자산 내장)은 Build, 터미널 렌더 엔진·relay·배포 등 범용은 Buy/Reuse.** 앱-소유·주입 통제는 자체 구현하되 파싱·렌더는 공식 WT 렌더러를 임베드한다. 리스크는 엔진 native 배포에 집중 → 10 참조.
+요약: **차별화 축(세션 소유·IPC 협업·자산 내장)은 Build, 터미널 렌더 엔진·relay·배포 등 범용은 Buy/Reuse.** 앱-소유·주입 통제는 자체 구현하되 파싱·렌더는 공식 WT 렌더러를 임베드한다. 리스크는 엔진 native 배포에 집중 → 10 참조.
 
 ---
 
@@ -229,9 +226,8 @@
 |---|---|---|
 | D1. **세션 간 IPC 채널 협업** | 전 오케스트레이터가 worktree 격리(세션이 대화 안 함) | FR-024~029 강화 — 채널 대화 뷰(FR-028)를 1급 화면으로. skill_ipc_control 재사용(NFR-017) |
 | D2. **앱-소유 ConPTY + 임의 주입** | Squad는 tmux 위, Conductor는 spawn만. 임의 세션 주입 제어 드묾 | FR-001·014·027 — 입력 경로가 렌더와 독립이라 주입을 처음부터 제어 |
-| D3. **의도별 세션 프로파일(재사용 애그리거트)** | Squad profile picker는 얕음, Conductor는 worktree 중심 | FR-019~023 — 6필드 프로파일 + as(IPC 식별자). 프리셋 즉시 기동 |
+| D3. **의도별 세션 프로파일(재사용 가능한 한 벌)** | Squad profile picker는 얕음, Conductor는 worktree 중심 | FR-019~023 — 6필드 프로파일 + as(IPC 식별자). 프리셋 즉시 기동 |
 | D4. **Windows 네이티브 관제탑** | Conductor macOS 전용·Vibe 웹·Squad TUI | NFR-019·FR-040 — WPF Shell, 데스크톱 통합 관제 |
-| D5. **토큰 관측 내장** | ccusage는 CLI 별도 | FR-030~032 — 세션↔jsonl 실시간 매핑·세션별 표시(ccusage 미충족 UX) |
 | D6. **프롬프트 자산 편집 내장** | 경쟁 전무 | FR-033~036 — 관제 중 자산 편집(경로 안전 NFR-008) |
 | D7. **로컬·무료·무인증** | Warp 유료·클라우드 논란 | FR-038·NFR-006 — 포트 0, BYO 구독. 프라이버시 포지셔닝 |
 
@@ -245,8 +241,8 @@
 ```
         high IMPACT
              |
-  D5 token   |  D1 IPC-collab
-  D3 profile |  D2 conpty-embed
+  D3 profile |  D1 IPC-collab
+             |  D2 conpty-embed
   -----------+------------------  EFFORT
   D6 asset   |  render-2 altscreen
   D7 local   |  pane-split / restore
@@ -256,9 +252,9 @@
 
 캡션: 세로축 Impact, 가로축 Effort(왼쪽 Low·오른쪽 High). 사분면 해석:
 - **Big Bets(고Impact·고Effort)**: D1 세션 간 IPC 협업 · D2 ConPTY 임베드+렌더 → v1 핵심 투자, PoC 선행(결정 B2·B3).
-- **Quick Wins(고Impact·저Effort)**: D5 토큰 내장(ccusage 로직 참고) · D3 세션 프로파일 프리셋 → 초기 마일스톤에서 차별화 조기 가시화.
+- **Quick Wins(고Impact·저Effort)**: D3 세션 프로파일 프리셋 → 초기 마일스톤에서 차별화 조기 가시화.
 - **Fill-ins(저Impact·저Effort)**: D6 자산 편집 · D7 로컬 포지셔닝 → 여력 시.
-- **Defer(저Impact·고Effort)**: alt-screen 완전 렌더(②단계)·pane 분할(FR-008)·상태 완전 복원(FR-043) → 후속 마일스톤(브리프 결정 #5/#8과 정합).
+- **Defer(저Impact·고Effort)**: alt-screen 완전 렌더(②단계)·pane 분할(FR-008)·상태 완전 복원(FR-043) → 후속 마일스톤(공식 WT 렌더러 위임·단일pane→탭 단계화 방침과 정합).
 
 ---
 
@@ -296,7 +292,6 @@
 4. **VT 파서 후보 실측 미확보**: vtnetcore vs libvt100(CS-012) vs XtermSharp engine(CS-011)의 성능·커버리지·라이선스 실측 → 10 기술리서처 숙제②로 이관.
 5. **경쟁 사용자 규모 정밀치 부재**: Squad ★7.9k·ccusage ★4.8k는 GitHub stars일 뿐 MAU 아님. Conductor MAU 비공개.
 6. **Claude Code 네이티브 Agent Teams 확장 위협**: 공식 팀 기능이 GUI/관측까지 확장 시 서드파티 잠식 가능 → 로드맵(12)에서 방어 포지셔닝 모니터링.
-7. **ccusage 라이선스·증분 구현 세부** 미확인(내장 흡수 시 로직 참조 범위 확정 필요).
 
 ---
 
@@ -304,7 +299,7 @@
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_competitor_researcher · 깊이: deep · 조사 13개(CS-001~013, 국내 0/해외 13)
-- 입력: `00_meeting_brief.md`(정체성·ConPTY 결정) · `04_requirements.md`(FR/NFR 비교 축, 참조 전용)
+- 입력: `04_requirements.md`(FR/NFR 비교 축, 참조 전용)
 - 관련 문서: [`04_requirements`](./04_requirements.md)(FR 비교 축) · [`10_tech`](./10_tech.md)(터미널 엔진·RISK) · [`12_roadmap`](./12_roadmap.md)(레이어 우선순위)
 - 미해결·후속: §7 항목 → `13_followups`로 이관(특히 파서 실측·Warp 협업 깊이·Agent Teams 위협).
 - 비고: 본 문서는 레지스트리 네임스페이스 ID를 발번하지 않는다(CS-###는 문서 로컬 라벨). FR은 참조 전용.

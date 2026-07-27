@@ -1,6 +1,6 @@
 # 13. 후속 숙제·운영 사전확인 (Follow-ups & Open Issues)
 
-> 담당: orchestrator(합성) · 깊이: deep · 열린 결정 3건 + 확정 참조 5건 + 운영 사전확인 6건
+> 담당: orchestrator(합성) · 깊이: deep · 열린 결정 3건 + 확정 참조 5건 + 운영 사전확인 5건
 > 본 문서는 구현 착수 전 확정이 필요한 열린 항목과, 이미 상위 문서에서 확정된 결정의 참조점, 그리고 운영 사전확인 항목을 취합한다.
 
 ---
@@ -29,7 +29,7 @@ MVP(L0+L1) 착수는 막지 않으며, 아래는 해당 레이어 진입 전 확
 
 | 항목 | 결정 | 참조 |
 |---|---|---|
-| 세션 프로파일 영속화 | JSON 파일 + 원자적 temp→rename (토큰이력·진단 축적 시 SQLite 승격) | 09 §8-4 |
+| 세션 프로파일 영속화 | JSON 파일 + 원자적 temp→rename (진단 축적 시 SQLite 승격) | 09 §8-4 |
 | 터미널 엔진 | EasyWindowsTerminalControl(공식 WT 렌더러 임베드) · self-build는 폴백 | 10 TS-02/03 |
 | 터미널 파싱/렌더/성능 | 공식 Windows Terminal 렌더러가 담당(자체 파서·셀 렌더러 불요) | 10 TS-02 |
 | alt-screen/TUI 렌더 | 엔진 기본 제공(별도 렌더 구현 불요) | 10 TS-02 |
@@ -46,7 +46,6 @@ MVP(L0+L1) 착수는 막지 않으며, 아래는 해당 레이어 진입 전 확
 | O2 | native 자산 배포 검증 | ClickOnce 산출물에 conpty.dll·OpenConsole.exe·WT 렌더러 동봉 확인(빈 터미널 방지) | 10 RISK-001·010 | MVP 게시 전 |
 | O3 | 코드 서명 인증서 | SmartScreen 완화용 OV/EV 인증서 | 10 §8-1 | MVP 게시 전 |
 | O4 | 엔진 라이선스·버전 핀 | EasyWindowsTerminalControl(MIT) 재배포 조건 확인 · `CI.Microsoft.*` beta 버전 정확히 핀 | 10 RISK-003 | L0 착수 전 |
-| O5 | claude jsonl 실 스키마 샘플 | 토큰 파싱·경로 탐지 규칙 검증용 실제 트랜스크립트 샘플(방어적 파싱 전제) | 10 RISK-007 | L3 착수 전 |
 | O6 | Could 착수 판단 | pane 분할(FR-008)·상태 복원(FR-043)의 여력 기반 착수 결정 | 12 병렬 트랙 | MVP 이후 |
 
 ---
