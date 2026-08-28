@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 using System.Windows;
+using ControlTowerWin.Features.Settings.Views;
 using ControlTowerWin.Shell.ViewModels;
 
 namespace ControlTowerWin.Shell.Views;
@@ -20,5 +21,13 @@ public partial class MainWindow : Window
         {
             vm.Sessions.CleanupAll();
         }
+    }
+
+    /* 설정 창(SC-02) 모달 오픈 — airspace 제약상 터미널 존 밖 별도 창 */
+    private void OnSettingsClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainWindowViewModel vm) return;
+        var window = new SettingsWindow(vm.CreateSettingsViewModel()) { Owner = this };
+        window.ShowDialog();
     }
 }

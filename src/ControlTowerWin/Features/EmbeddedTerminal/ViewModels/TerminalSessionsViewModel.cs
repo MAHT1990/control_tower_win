@@ -36,10 +36,13 @@ public class TerminalSessionsViewModel : ViewModelBase
     /* 컨텍스트 메뉴 "명령 실행"이 커맨드 바에 포커스를 요청 → View가 처리 */
     public event Action? FocusCommandBarRequested;
 
+    /* 현재 전역 글꼴(FR-048). 신규 탭/터미널에 승계된다. */
+    private (string Family, int Size)? _currentFont;
+
     public TerminalSessionsViewModel()
     {
         AddTabCommand = new RelayCommand(_ => AddTab());
-        AddTerminalCommand = new RelayCommand(_ => SelectedTab?.AddTerminal(), _ => SelectedTab != null);
+        AddTerminalCommand = new RelayCommand(_ => AddTerminalToSelected(), _ => SelectedTab != null);
         CloseCommand = new RelayCommand(_ => CloseSelected(), _ => SelectedTab != null);
         RenameCommand = new RelayCommand(_ => BeginRename(), _ => SelectedNode != null);
         InjectCommand = new RelayCommand(_ => InjectToSelected(),
@@ -96,6 +99,26 @@ public class TerminalSessionsViewModel : ViewModelBase
         CaptureBuffer.Capture(terminal.Title, terminal.CaptureOutput());
     }
 
+    /* 전역 글꼴을 전 터미널에 적용(FR-048/FN-SYS-06). 이후 생성 터미널에도 승계. */
+    public void ApplyFontToAll(string fontFamily, int fontSize)
+    {
+        _currentFont = (fontFamily, fontSize);
+        foreach (var terminal in Tabs.SelectMany(t => t.Terminals))
+        {
+            terminal.ApplyFont(fontFamily, fontSize);
+        }
+    }
+
+    /* 선택 탭에 터미널 추가 + 현재 글꼴 승계 */
+    private void AddTerminalToSelected()
+    {
+        var terminal = SelectedTab?.AddTerminal();
+        if (terminal != null && _currentFont is { } font)
+        {
+            terminal.ApplyFont(font.Family, font.Size);
+        }
+    }
+
     /* 앱 종료 시 소유 세션 일괄 정리(FN-TRM-02, 좀비 방지) */
     public void CleanupAll()
     {
@@ -138,6 +161,13 @@ public class TerminalSessionsViewModel : ViewModelBase
         var tab = new TabViewModel($"Tab {++_counter}");
         Tabs.Add(tab);
         SelectedTab = tab;
+        if (_currentFont is { } font)
+        {
+            foreach (var terminal in tab.Terminals)
+            {
+                terminal.ApplyFont(font.Family, font.Size);
+            }
+        }
     }
 
     /* 포커스 터미널이 있으면 그 터미널만, 없으면 탭 전체를 닫는다 */

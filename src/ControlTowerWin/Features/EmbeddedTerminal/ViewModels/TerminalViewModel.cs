@@ -67,7 +67,24 @@ public class TerminalViewModel : ViewModelBase, IRenamableNode
     /* 엔진 경계 세션(주입/캡처). View 로드 시 EasyTerminalControl에서 주입됨(NFR-018). */
     private ITerminalSession? _session;
 
-    public void AttachSession(ITerminalSession session) => _session = session;
+    /* 세션 attach 전에 요청된 글꼴(신규 터미널·앱 시작 시). attach 시점에 적용된다. */
+    private (string Family, int Size)? _pendingFont;
+
+    public void AttachSession(ITerminalSession session)
+    {
+        _session = session;
+        if (_pendingFont is { } font)
+        {
+            session.ApplyFont(font.Family, font.Size);
+        }
+    }
+
+    /* 글꼴 적용(FR-048). 세션 미준비면 보관했다가 attach 시 적용. */
+    public void ApplyFont(string fontFamily, int fontSize)
+    {
+        _pendingFont = (fontFamily, fontSize);
+        _session?.ApplyFont(fontFamily, fontSize);
+    }
 
     /* 커맨드 주입(FR-014/FN-SES-04). 개행을 붙여 실행한다. */
     public void Inject(string command)

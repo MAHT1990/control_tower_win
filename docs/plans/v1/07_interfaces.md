@@ -1,6 +1,6 @@
 # 07. 인터페이스 설계 (IA · 화면 · 흐름 · UX)
 
-> 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 24 / FR 커버리지 47/47 (100%) · 고아 화면 0
+> 담당: plan_interface_designer · 깊이: deep · 총 화면 SC 24 / FR 커버리지 48/48 (100%) · 고아 화면 0
 > 본 문서는 Control Tower 단일 WPF 셸의 정보구조(IA)·화면 명세(SC)·사용자 흐름·UX 원칙을 정의한다. 08(REST/API)은 서버 부재로 제외하며, 데이터 형상=09·in-proc 계약=10 소관이다. 화면이 필요로 하는 데이터는 "무엇이 보인다" 수준으로만 기술한다.
 
 ---
@@ -9,7 +9,7 @@
 
 ### 0-1. 목적·범위
 
-본 문서는 `04`(FR 47/NFR 22)·`05`(FN 57)가 정의한 "무엇을"과 `06`(BS 24/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 탭 컨테이너 + 탭 내 pane 분할)를 반영한다.
+본 문서는 `04`(FR 48/NFR 22)·`05`(FN 58)가 정의한 "무엇을"과 `06`(BS 24/JM 5)의 "행동 흐름"을, 사용자가 실제로 만나는 **화면(SC)**으로 배치한다. `00_meeting_brief`의 제품 폼팩터(WPF 데스크톱 단일 셸 · Feature×Layer 하이브리드 · 탭 컨테이너 + 탭 내 pane 분할)를 반영한다.
 
 - **정의하는 것**: 앱 단일 셸의 영역(존) 구성(IA) / 각 화면의 목적·구성요소·상호작용·표시 데이터·연결 FN/FR·진입/이탈(SC) / 모드(UT)별 화면 전이 흐름 / 키보드 중심 UX 원칙·전환 가드.
 - **정의하지 않는 것(경계)**: 08(REST 엔드포인트·DTO)은 서버 부재로 제외 / 데이터 형상(엔티티·프로파일 영속 스키마·ERD)=09 / in-proc 계약·터미널 엔진·아키텍처 검증=10. 본 문서는 "어떤 정보가 화면에 보이는가"까지만 적고 계약은 넘긴다.
@@ -39,7 +39,7 @@
 | SC | 화면명 | 분류 | 존 | 주 대상 UT | 관련 FR | 관련 FN |
 |---|---|---|---|---|---|---|
 | SC-01 | 앱 메인 셸 (App Shell) | Shell/System | S | UT-001 | FR-040 | FN-SYS-01 |
-| SC-02 | 설정 (Settings) | Shell/System | O | UT-004 | FR-042·038 | FN-SYS-03·SEC-02 |
+| SC-02 | 설정 (Settings) | Shell/System | O | UT-004 | FR-042·038·048 | FN-SYS-03·SEC-02·SYS-06 |
 | SC-03 | 시작 복원 프롬프트 (Startup Restore) | Shell/System | O | UT-001 | FR-043·018 | FN-SYS-04·SES-10 |
 | SC-04 | 종료 확인 (Exit / Cleanup Confirm) | Shell/System | O | UT-001 | FR-001·015·039 | FN-TRM-01·02·SES-05·SEC-03 |
 | SC-05 | 업데이트 알림 (Update Notice) | Shell/System | O | UT-001 | FR-041 | FN-SYS-02 |
@@ -204,12 +204,12 @@
 
 #### [SC-02] 설정 (Settings)
 - 분류/존: Shell/System · O(모달/전체 오버레이) · 대상 UT-004
-- FR/FN: FR-042·038 / FN-SYS-03·SEC-02 (관련 NFR-006 포트 0)
-- 목적: 핵심 경로(~/.claude·channels 루트)·기본 프로파일·정책 표기를 관리·영속.
-- 핵심 구성요소: 경로 입력(검증 배지) / 기본 프로파일 선택 / 보안 정책 표기(포트 0·로컬 전용, read-only) / 저장·취소.
-- 표시 데이터: {claudeRoot}, {channelsRoot}, {defaultProfile}, {listeningPorts:0 고정 표기}.
-- 상호작용: 경로 편집→유효성 검사(FN-PRF-02 계열 경로 검사), 설정 변경→저장→영속(원자적).
-- 상태: 로딩=현재 설정 fetch / 빈=최초 실행 시 기본값 프리필 / 에러=경로 무효→인라인 "path not found", 저장 실패→토스트.
+- FR/FN: FR-042·038·048 / FN-SYS-03·SEC-02·SYS-06 (관련 NFR-006 포트 0)
+- 목적: 핵심 경로(~/.claude·channels 루트)·기본 프로파일·정책 표기·터미널 글꼴을 관리·영속.
+- 핵심 구성요소: 경로 입력(검증 배지) / 기본 프로파일 선택 / 터미널 글꼴(크기 수치 입력 6~72·종류 monospace 한정 콤보, FN-SYS-06) / 보안 정책 표기(포트 0·로컬 전용, read-only) / 저장·취소.
+- 표시 데이터: {claudeRoot}, {channelsRoot}, {defaultProfile}, {fontSize}, {fontFamily}, {listeningPorts:0 고정 표기}.
+- 상호작용: 경로 편집→유효성 검사(FN-PRF-02 계열 경로 검사), 설정 변경→저장→영속(원자적). 글꼴 크기(6~72 검증)·종류(monospace 목록) 변경→저장→실행 중 전 터미널 라이브 재적용(SetTheme, FR-048)·신규 터미널 적용. 줄간격은 엔진 미지원으로 v1 비노출(후속 ⑨).
+- 상태: 로딩=현재 설정 fetch / 빈=최초 실행 시 기본값 프리필(글꼴 기본 Cascadia Code·12pt) / 에러=경로 무효→인라인 "path not found", 크기 범위 밖→인라인 거부, 저장 실패→토스트.
 - 진입: 상단 gear / Flow E 확장 / 이탈: 저장·취소→SC-01.
 ```
 +---------------- SETTINGS (SC-02) -----------------+
@@ -218,13 +218,16 @@
 |  channels    : {..../channels........} [check !] |  <- 경로 검증 배지
 | DEFAULTS                                         |
 |  default profile : [ tower2      v]              |
+| DISPLAY (terminal font)                          |
+|  font size   : [ 12 ] pt  (6-72)                 |  <- FN-SYS-06 범위 검증
+|  font family : [ Cascadia Code   v] (monospace)  |  <- monospace 한정 목록
 | SECURITY (read-only)                             |
 |  listening ports : 0  (local-only, no relay)     |  <- FN-SEC-02 정책 표기
 +--------------------------------------------------+
 |                    [CANCEL]  [SAVE]              |
 +--------------------------------------------------+
 ```
-캡션: 경로 필드마다 유효성 배지. 보안 정책(포트 0)은 편집 불가 표기로 "외부 미노출"을 사용자에게 상시 확인시킨다(BS-016).
+캡션: 경로 필드마다 유효성 배지. 글꼴(FR-048)은 저장 즉시 전 터미널에 라이브 재적용(재시작 불요). 보안 정책(포트 0)은 편집 불가 표기로 "외부 미노출"을 사용자에게 상시 확인시킨다(BS-016).
 
 #### [SC-03] 시작 복원 프롬프트 (Startup Restore)
 - 분류/존: Shell/System · O · 대상 UT-001
@@ -867,7 +870,7 @@ flowchart TD
 - **존 분포**: T(터미널) 5 · L(내비게이터) 3 · R(오케스트레이션) 5 · S(셸/시스템) 1 · O(오버레이) 10(존 겸속).
 - **8 카테고리 화면 커버**: TRM(SC-07~10) · SES(SC-11·12) · PRF(SC-14·15) · IPC(SC-16~19) · OBS(SC-20) · AST(SC-21·22) · SEC(SC-13·04·21·22 횡단) · SYS(SC-01~06). → 누락 카테고리 0.
 
-### 6-2. FR 커버리지 (47/47 = 100%) ★불변식
+### 6-2. FR 커버리지 (48/48 = 100%) ★불변식
 
 | FR | SC | FR | SC | FR | SC |
 |---|---|---|---|---|---|
@@ -886,16 +889,16 @@ flowchart TD
 | FR-013 | 15·14 | FR-028 | 17 | FR-043 | 03 |
 | FR-014 | 12 | FR-029 | 16 | FR-044 | 10 |
 | FR-015 | 11·07·04 | FR-030 | 20 | FR-045 | 07·08 |
-| FR-046 | 07·23 | FR-047 | 24 | | |
+| FR-046 | 07·23 | FR-047 | 24 | FR-048 | 02 |
 
-> **미커버 FR = 0** (47/47). NFR 중 화면 실현분: NFR-006/007/008(SC-02·13·21·22)·NFR-009(SC-06/08 격리)·NFR-010(SC-16)·NFR-011(SC-15·22)·NFR-022(SC-06). 나머지 품질 NFR은 10(tech) 검증.
+> **미커버 FR = 0** (48/48). NFR 중 화면 실현분: NFR-006/007/008(SC-02·13·21·22)·NFR-009(SC-06/08 격리)·NFR-010(SC-16)·NFR-011(SC-15·22)·NFR-022(SC-06). 나머지 품질 NFR은 10(tech) 검증.
 
 ### 6-3. 자체 검증 게이트
 | 게이트 | 결과 |
 |---|---|
-| FR 커버리지(미커버 FR=0) | ✅ 47/47 |
+| FR 커버리지(미커버 FR=0) | ✅ 48/48 |
 | 고아 화면 0(모든 SC ≥1 흐름/IA 등장) | ✅ 24/24 (Flow A~F + IA §2 전수 등장, SC-23·24 IA §2-1) |
-| 참조 무결(인용 FR/FN/UT/BS가 레지스트리 존재) | ✅ FR-001~047·FN 57·UT-001~005·BS-001~023 인용, 재번호 0 |
+| 참조 무결(인용 FR/FN/UT/BS가 레지스트리 존재) | ✅ FR-001~048·FN 58·UT-001~005·BS-001~024 인용, 재번호 0 |
 | SC 네임스페이스 유일 | ✅ SC-01~24 중복 0 |
 | 06 핵심 요구 반영 | ✅ 활성 세션 명시(SC-07·12·13)·주입 게이트(SC-13)·상태 배지(SC-07·11·16)·경로 경계(SC-21·22) |
 
@@ -905,7 +908,7 @@ flowchart TD
 
 - 버전: v1.0 / 생성일: 2026-07-01
 - 담당: plan_interface_designer · 깊이: deep
-- 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 47/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 57·화면 후보) · `06_behaviors.md`(BS 24/JM 5 접점) · `00_meeting_brief.md`(WPF 단일 셸·Feature×Layer·탭 컨테이너+탭 내 pane 분할) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
+- 입력: `03_users.md`(UT-001~005·P-001·모드 맥락·주의 분산 §4-3) · `04_requirements.md`(FR 48/NFR 22·8 카테고리·제약 C1~C10) · `05_functions.md`(FN 58·화면 후보) · `06_behaviors.md`(BS 24/JM 5 접점) · `00_meeting_brief.md`(WPF 단일 셸·Feature×Layer·탭 컨테이너+탭 내 pane 분할) · 규약(plan_doc_skeleton·plan_id_system·rule_visualization_guide)
 - 발번 ID: SC-01~22 (FR/FN/UT/BS·카테고리는 참조만, 재번호 없음)
 - 관련 문서: [`04_requirements`](./04_requirements.md) · [`05_functions`](./05_functions.md)(추적성 매트릭스 SC 열 완성 대상) · [`06_behaviors`](./06_behaviors.md)(접점→SC 확정) · [`09_database`](./09_database.md)(SC 표시 데이터→ENT)
 - 미해결·후속: 채널 1:1 매핑(④·SC-16)·위험 가드 정책 범위(⑧·SC-13)·프롬프트 편집 v1 범위(⑤·SC-21·22)·web_monitor 흡수 vs 병존(⑥·SC-17)·pane 분할(FR-008·SC-10 Could) → `13_followups` 연계.
